@@ -1,6 +1,6 @@
 {
   "name": "@follicore/platform",
-  "version": "0.1.0-alpha.1",
+  "version": "0.3.0",
   "description": "Predictive Trichology Platform - Hair Health Management System based on CogniCore POMDP Engine",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
