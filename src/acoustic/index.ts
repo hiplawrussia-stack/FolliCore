@@ -9,3 +9,6 @@
 
 // Export all types
 export * from './AcousticTypes';
+
+// Export analyzer
+export * from './AcousticAnalyzer';
