@@ -1,0 +1,41 @@
+{
+  "name": "@follicore/platform",
+  "version": "0.1.0-alpha.1",
+  "description": "Predictive Trichology Platform - Hair Health Management System based on CogniCore POMDP Engine",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "jest --coverage",
+    "test:watch": "jest --watch",
+    "lint": "eslint src --ext .ts"
+  },
+  "keywords": [
+    "trichology",
+    "hair-diagnostics",
+    "pomdp",
+    "digital-health",
+    "ai-diagnostics",
+    "computer-vision",
+    "acoustic-analysis",
+    "predictive-medicine"
+  ],
+  "author": {
+    "name": "БФ Другой путь",
+    "email": "tech@awfond.ru",
+    "url": "https://awfond.ru"
+  },
+  "license": "MIT",
+  "dependencies": {},
+  "devDependencies": {
+    "@types/jest": "^29.5.0",
+    "@types/node": "^22.0.0",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.1.0",
+    "typescript": "^5.9.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
