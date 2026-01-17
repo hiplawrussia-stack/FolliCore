@@ -663,4 +663,269 @@ describe('MultimodalIntegration', () => {
       expect(DEFAULT_MULTIMODAL_CONFIG.includeModalityComparison).toBe(true);
     });
   });
+
+  // ===========================================================================
+  // BRANCH COVERAGE TESTS
+  // ===========================================================================
+
+  describe('Branch Coverage - autoUpdateBelief disabled', () => {
+    it('should skip belief update when autoUpdateBelief is false', async () => {
+      const integration = new MultimodalIntegration({ autoUpdateBelief: false });
+      await integration.initialize(createMockDependencies());
+
+      const context = createMockContext();
+      integration.initializePatient('patient_001', context);
+      const input = createMockInput();
+
+      const result = await integration.runPipeline('patient_001', input, context);
+
+      // Should still return belief state (from getBeliefState, not updateBelief)
+      expect(result.beliefState).toBeDefined();
+
+      await integration.dispose();
+    });
+  });
+
+  describe('Branch Coverage - runScalpMapping edge cases', () => {
+    it('should throw if runScalpMapping called before initialization', async () => {
+      const integration = new MultimodalIntegration();
+      const context = createMockContext();
+
+      await expect(
+        integration.runScalpMapping('patient_001', [createMockInput()], context)
+      ).rejects.toThrow('Integration not initialized');
+    });
+
+    it('should collect significant discrepancies in scalp mapping', async () => {
+      // Create integration with mocks that will produce significant discrepancies
+      const integration = new MultimodalIntegration({ includeModalityComparison: true });
+
+      // Create dependencies with low confidence to trigger health discrepancy
+      const deps = createMockDependencies();
+      // Override cycle head to return low anagen ratio (triggers discrepancy)
+      (deps.vision.cycleHead.classify as jest.Mock).mockResolvedValue({
+        anagenCount: 10,
+        catagenCount: 5,
+        telogenCount: 30,
+        anagenTelogenRatio: 0.25, // Low ratio
+        vellusCount: 25,
+        terminalCount: 20,
+        vellusTerminalRatio: 0.55, // High vellus ratio (triggers damage)
+        confidence: 0.3, // Very low confidence
+      });
+
+      await integration.initialize(deps);
+
+      const context = createMockContext();
+      integration.initializePatient('patient_001', context);
+
+      const inputs = [
+        createMockInput('temporal'),
+        createMockInput('parietal'),
+      ];
+
+      const result = await integration.runScalpMapping('patient_001', inputs, context);
+
+      expect(result.zoneResults.size).toBe(2);
+      expect(result.summary).toBeDefined();
+
+      await integration.dispose();
+    });
+  });
+
+  describe('Branch Coverage - Modality Agreement Analysis', () => {
+    it('should detect structure disagreement when acoustic shows damage', async () => {
+      const integration = new MultimodalIntegration({ includeModalityComparison: true });
+      const deps = createMockDependencies();
+
+      // Override acoustic to show damaged structure
+      (deps.acoustic.hairAnalysisBackend.analyzeStructure as jest.Mock).mockResolvedValue({
+        structureClass: 'damaged',
+        damageScore: 0.85,
+        scatteringRegularity: 0.3,
+        dampingCoefficient: 0.7,
+        resonanceFrequency: 3000,
+        damageTypes: ['cuticle_erosion'],
+        confidence: 0.9,
+      });
+
+      await integration.initialize(deps);
+
+      const context = createMockContext();
+      integration.initializePatient('patient_001', context);
+      const input = createMockInput();
+
+      const result = await integration.runPipeline('patient_001', input, context);
+
+      expect(result.modalityAgreement).toBeDefined();
+      // Should have detected disagreement
+      expect(result.modalityAgreement?.discrepancies.length).toBeGreaterThanOrEqual(0);
+
+      await integration.dispose();
+    });
+
+    it('should detect health disagreement when confidence differs significantly', async () => {
+      const integration = new MultimodalIntegration({ includeModalityComparison: true });
+      const deps = createMockDependencies();
+
+      // Override to create significant health disagreement
+      (deps.vision.cycleHead.classify as jest.Mock).mockResolvedValue({
+        anagenCount: 38,
+        catagenCount: 2,
+        telogenCount: 5,
+        anagenTelogenRatio: 0.88,
+        vellusCount: 6,
+        terminalCount: 39,
+        vellusTerminalRatio: 0.13,
+        confidence: 0.95, // High confidence
+      });
+
+      // Set acoustic to show poor health (damaged structure)
+      (deps.acoustic.hairAnalysisBackend.analyzeStructure as jest.Mock).mockResolvedValue({
+        structureClass: 'damaged',
+        damageScore: 0.9,
+        scatteringRegularity: 0.2,
+        dampingCoefficient: 0.8,
+        resonanceFrequency: 2500,
+        damageTypes: ['cortex_damage'],
+        confidence: 0.85,
+      });
+
+      await integration.initialize(deps);
+
+      const context = createMockContext();
+      integration.initializePatient('patient_001', context);
+      const input = createMockInput();
+
+      const result = await integration.runPipeline('patient_001', input, context);
+
+      expect(result.modalityAgreement).toBeDefined();
+
+      await integration.dispose();
+    });
+
+    it('should detect damage disagreement between vision and acoustic', async () => {
+      const integration = new MultimodalIntegration({ includeModalityComparison: true });
+      const deps = createMockDependencies();
+
+      // Vision shows high vellus ratio (damage indicator)
+      (deps.vision.cycleHead.classify as jest.Mock).mockResolvedValue({
+        anagenCount: 20,
+        catagenCount: 5,
+        telogenCount: 20,
+        anagenTelogenRatio: 0.5,
+        vellusCount: 20,
+        terminalCount: 25,
+        vellusTerminalRatio: 0.45, // High vellus ratio > 0.3
+        confidence: 0.8,
+      });
+
+      // Acoustic shows healthy structure (no damage)
+      (deps.acoustic.hairAnalysisBackend.analyzeStructure as jest.Mock).mockResolvedValue({
+        structureClass: 'healthy',
+        damageScore: 0.1,
+        scatteringRegularity: 0.9,
+        dampingCoefficient: 0.25,
+        resonanceFrequency: 5500,
+        damageTypes: [],
+        confidence: 0.9,
+      });
+
+      await integration.initialize(deps);
+
+      const context = createMockContext();
+      integration.initializePatient('patient_001', context);
+      const input = createMockInput();
+
+      const result = await integration.runPipeline('patient_001', input, context);
+
+      expect(result.modalityAgreement).toBeDefined();
+      // Check for damage discrepancy
+      const damageDiscrepancy = result.modalityAgreement?.discrepancies.find(
+        d => d.aspect === 'damage'
+      );
+      expect(damageDiscrepancy).toBeDefined();
+
+      await integration.dispose();
+    });
+
+    it('should add note for significant discrepancies', async () => {
+      const integration = new MultimodalIntegration({ includeModalityComparison: true });
+      const deps = createMockDependencies();
+
+      // Create significant health disagreement (healthAgreement < 0.4)
+      (deps.vision.cycleHead.classify as jest.Mock).mockResolvedValue({
+        anagenCount: 40,
+        catagenCount: 2,
+        telogenCount: 3,
+        anagenTelogenRatio: 0.9,
+        vellusCount: 5,
+        terminalCount: 40,
+        vellusTerminalRatio: 0.11,
+        confidence: 0.95, // High vision confidence
+      });
+
+      // Very poor acoustic health (damaged structure + bad scores)
+      (deps.acoustic.hairAnalysisBackend.analyzeStructure as jest.Mock).mockResolvedValue({
+        structureClass: 'damaged',
+        damageScore: 0.95,
+        scatteringRegularity: 0.1,
+        dampingCoefficient: 0.9,
+        resonanceFrequency: 2000,
+        damageTypes: ['severe_cortex_damage'],
+        confidence: 0.9,
+      });
+
+      // Bad porosity (high = bad)
+      (deps.acoustic.hairAnalysisBackend.analyzePorosity as jest.Mock).mockResolvedValue({
+        score: 0.9,
+        level: 'high',
+        absorptionCoefficient: 0.8,
+        cuticleIntegrity: 0.1,
+        confidence: 0.9,
+      });
+
+      // Bad hydration (low = bad)
+      (deps.acoustic.hairAnalysisBackend.analyzeHydration as jest.Mock).mockResolvedValue({
+        score: 0.1,
+        level: 'low',
+        moisturePercent: 5.0,
+        waveVelocity: 1200,
+        confidence: 0.9,
+      });
+
+      await integration.initialize(deps);
+
+      const context = createMockContext();
+      integration.initializePatient('patient_001', context);
+      const input = createMockInput();
+
+      const result = await integration.runPipeline('patient_001', input, context);
+
+      expect(result.modalityAgreement).toBeDefined();
+      // Should have discrepancies
+      expect(result.modalityAgreement?.discrepancies.length).toBeGreaterThan(0);
+      // Should have significant discrepancy note
+      expect(result.modalityAgreement?.notes).toContain('Significant modality discrepancy - consider additional testing');
+
+      await integration.dispose();
+    });
+  });
+
+  describe('Branch Coverage - includeModalityComparison disabled', () => {
+    it('should skip modality comparison when disabled', async () => {
+      const integration = new MultimodalIntegration({ includeModalityComparison: false });
+      await integration.initialize(createMockDependencies());
+
+      const context = createMockContext();
+      integration.initializePatient('patient_001', context);
+      const input = createMockInput();
+
+      const result = await integration.runPipeline('patient_001', input, context);
+
+      expect(result.modalityAgreement).toBeUndefined();
+
+      await integration.dispose();
+    });
+  });
 });

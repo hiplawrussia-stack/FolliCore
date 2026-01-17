@@ -717,4 +717,80 @@ describe('AcousticEngineIntegration', () => {
       expect(DEFAULT_ACOUSTIC_INTEGRATION_CONFIG.useEdgeConfig).toBe(false);
     });
   });
+
+  // ===========================================================================
+  // BRANCH COVERAGE TESTS
+  // ===========================================================================
+
+  describe('Branch Coverage - autoUpdateBelief disabled', () => {
+    it('should skip belief update when autoUpdateBelief is false', async () => {
+      const integration = new AcousticEngineIntegration({
+        autoUpdateBelief: false,
+      });
+      await integration.initialize(createMockComponents());
+
+      const context = createMockContext();
+      integration.initializePatient('patient_001', context);
+      const recording = createMockRecording();
+
+      const beliefBefore = integration.getBeliefState('patient_001');
+      const historyLengthBefore = beliefBefore?.beliefHistory.length || 0;
+
+      const result = await integration.runPipeline('patient_001', recording, context);
+
+      // Belief should not be updated (history length unchanged)
+      expect(result.beliefState).toBeDefined();
+      expect(result.beliefState?.beliefHistory.length).toBe(historyLengthBefore);
+
+      await integration.dispose();
+    });
+
+    it('should still return analysis and observation when autoUpdateBelief is false', async () => {
+      const integration = new AcousticEngineIntegration({
+        autoUpdateBelief: false,
+      });
+      await integration.initialize(createMockComponents());
+
+      const context = createMockContext();
+      integration.initializePatient('patient_001', context);
+      const recording = createMockRecording();
+
+      const result = await integration.runPipeline('patient_001', recording, context);
+
+      expect(result.analysis).toBeDefined();
+      expect(result.observation).toBeDefined();
+      expect(result.metadata.totalProcessingTimeMs).toBeGreaterThanOrEqual(0);
+
+      await integration.dispose();
+    });
+  });
+
+  describe('Branch Coverage - runMultiZonePipeline uninitialized', () => {
+    it('should throw if runMultiZonePipeline called before initialization', async () => {
+      const integration = new AcousticEngineIntegration();
+      const context = createMockContext();
+
+      integration.initializePatient('patient_001', context);
+
+      const recordings = [
+        createMockRecording('temporal'),
+        createMockRecording('parietal'),
+      ];
+
+      await expect(
+        integration.runMultiZonePipeline('patient_001', recordings, context)
+      ).rejects.toThrow('Integration not initialized');
+    });
+  });
+
+  describe('Branch Coverage - analyzeOnly uninitialized', () => {
+    it('should throw if analyzeOnly called before initialization', async () => {
+      const integration = new AcousticEngineIntegration();
+      const recording = createMockRecording();
+
+      await expect(integration.analyzeOnly(recording)).rejects.toThrow(
+        'Integration not initialized'
+      );
+    });
+  });
 });
