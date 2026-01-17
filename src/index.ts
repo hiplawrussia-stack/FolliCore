@@ -8,6 +8,7 @@
  * Architecture:
  * - Trichology: Domain models, states, safety rules
  * - Vision: DINOv2 + SAM-based image analysis
+ * - Acoustic: OpenBEATs + Mamba-based audio analysis (Phase 3)
  * - Integration: End-to-end pipeline orchestration
  *
  * @packageDocumentation
@@ -18,6 +19,9 @@ export * from './trichology';
 
 // Export vision module
 export * from './vision';
+
+// Export acoustic module (Phase 3)
+export * from './acoustic';
 
 // Export integration layer
 export * from './integration';
