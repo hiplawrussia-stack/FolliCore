@@ -1,0 +1,49 @@
+# FolliCore ML Pipeline Requirements
+# Python 3.10+
+
+# Core ML
+torch>=2.1.0
+torchvision>=0.16.0
+transformers>=4.36.0
+datasets>=2.16.0
+accelerate>=0.25.0
+
+# Computer Vision
+opencv-python>=4.8.0
+Pillow>=10.0.0
+albumentations>=1.3.0
+scikit-image>=0.21.0
+
+# Data & Analysis
+numpy>=1.24.0
+pandas>=2.0.0
+scipy>=1.11.0
+scikit-learn>=1.3.0
+
+# Visualization
+matplotlib>=3.7.0
+seaborn>=0.12.0
+plotly>=5.17.0
+
+# Experiment Tracking
+wandb>=0.16.0
+tensorboard>=2.14.0
+
+# Utilities
+tqdm>=4.66.0
+pyyaml>=6.0
+python-dotenv>=1.0.0
+kaggle>=1.5.16
+huggingface-hub>=0.20.0
+
+# Segmentation Models
+segment-anything>=1.0
+# Note: MedSAM2 installed from source
+
+# ONNX Export (for edge deployment)
+onnx>=1.15.0
+onnxruntime>=1.16.0
+
+# Testing
+pytest>=7.4.0
+pytest-cov>=4.1.0

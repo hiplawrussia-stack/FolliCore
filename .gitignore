@@ -30,3 +30,20 @@ npm-debug.log*
 .env
 .env.local
 .env.*.local
+
+# ML Pipeline - Large files (download locally)
+ml/data/raw/
+ml/data/processed/
+ml/data/interim/
+ml/models/pretrained/
+ml/models/checkpoints/
+ml/models/fine_tuned/*.pt
+ml/models/fine_tuned/*.pth
+ml/models/fine_tuned/*.onnx
+
+# Python
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+wandb/
+runs/
