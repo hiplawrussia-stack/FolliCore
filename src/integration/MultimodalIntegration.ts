@@ -14,49 +14,48 @@
 import {
   TrichoscopyAnalyzer,
   VisionBeliefAdapter,
-  ITrichoscopyAnalysis,
-  ITrichoscopyImage,
-  IVisionAdapterConfig,
-  DEFAULT_ADAPTER_CONFIG,
-  IStateInference,
-  IFeatureExtractor,
-  ISegmentationModel,
-  IMorphometryHead,
-  IDensityHead,
-  ICycleHead,
-  IVisionConfig,
+  type ITrichoscopyAnalysis,
+  type ITrichoscopyImage,
+  type IVisionAdapterConfig,
+  type IStateInference,
+  type IFeatureExtractor,
+  type ISegmentationModel,
+  type IMorphometryHead,
+  type IDensityHead,
+  type ICycleHead,
+  type IVisionConfig,
 } from '../vision';
 
 import {
-  AcousticAnalyzer,
-  IAcousticAnalyzerComponents,
+  type AcousticAnalyzer,
+  type IAcousticAnalyzerComponents,
   createAcousticAnalyzer,
-  IAcousticNormComparison,
+  type IAcousticNormComparison,
 } from '../acoustic/AcousticAnalyzer';
 
 import {
-  IAcousticRecording,
-  IAcousticAnalysisResult,
-  IAcousticObservation,
-  IAcousticConfig,
+  type IAcousticRecording,
+  type IAcousticAnalysisResult,
+  type IAcousticObservation,
+  type IAcousticConfig,
   toAcousticObservation,
 } from '../acoustic/AcousticTypes';
 
 import {
   FolliCoreEngine,
-  IFolliCoreConfig,
-  ITreatmentRecommendation,
-  ITrajectoryPrediction,
+  type IFolliCoreConfig,
+  type ITreatmentRecommendation,
+  type ITrajectoryPrediction,
 } from '../trichology/FolliCoreEngine';
 
 import {
-  IPatientContext,
-  IFollicleObservation,
-  ITrichologyBeliefState,
-  FollicleState,
+  type IPatientContext,
+  type IFollicleObservation,
+  type ITrichologyBeliefState,
+  type FollicleState,
 } from '../trichology/domain/TrichologyStates';
 
-import { ScalpZone } from '../vision/VisionTypes';
+import { type ScalpZone } from '../vision/VisionTypes';
 
 /**
  * Configuration for multimodal integration
@@ -238,7 +237,7 @@ export class MultimodalIntegration {
   private visionAdapter: VisionBeliefAdapter;
   private acousticAnalyzer: AcousticAnalyzer;
   private engine: FolliCoreEngine;
-  private initialized: boolean = false;
+  private initialized = false;
 
   constructor(config: Partial<IMultimodalConfig> = {}) {
     this.config = { ...DEFAULT_MULTIMODAL_CONFIG, ...config };
@@ -361,7 +360,7 @@ export class MultimodalIntegration {
       zone: input.zone,
       visionAnalysis,
       acousticAnalysis,
-      fusedObservation: fusedObservation!,
+      fusedObservation: fusedObservation,
       acousticObservation,
       visionStateInference,
       acousticNormComparison,
@@ -415,7 +414,7 @@ export class MultimodalIntegration {
     }
 
     // Get final belief and recommendation
-    const finalBelief = this.engine.getBeliefState(patientId)!;
+    const finalBelief = this.engine.getBeliefState(patientId);
     const recommendation = this.engine.getRecommendation(patientId, context);
     const trajectory = this.engine.predictTrajectory(patientId);
 
@@ -565,7 +564,7 @@ export class MultimodalIntegration {
     const visionConfidence = visionState.confidence;
     const acousticHealth = acousticNorms.healthScore;
 
-    let healthAgreement = 1.0 - Math.abs(visionConfidence - acousticHealth);
+    const healthAgreement = 1.0 - Math.abs(visionConfidence - acousticHealth);
     if (healthAgreement < 0.6) {
       discrepancies.push({
         aspect: 'health',

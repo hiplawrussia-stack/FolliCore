@@ -3,7 +3,7 @@
  */
 
 import { MorphometryExtractor, createMorphometryExtractor } from './MorphometryExtractor';
-import { IImageEmbedding, ISegmentationResult, VisionError, VisionErrorCode } from './VisionTypes';
+import { type IImageEmbedding, type ISegmentationResult, VisionError } from './VisionTypes';
 
 describe('MorphometryExtractor', () => {
   let extractor: MorphometryExtractor;
@@ -15,7 +15,7 @@ describe('MorphometryExtractor', () => {
     extractedAt: new Date(),
   });
 
-  const createMockSegmentation = (follicleCount: number = 20, hairCount: number = 50): ISegmentationResult => ({
+  const createMockSegmentation = (follicleCount = 20, hairCount = 50): ISegmentationResult => ({
     follicleMasks: Array(follicleCount).fill('mock_mask'),
     scalpMask: 'mock_scalp',
     shaftMasks: Array(hairCount).fill('mock_shaft'),

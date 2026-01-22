@@ -7,8 +7,14 @@
 
 /**
  * Scalp zones for analysis
+ * Based on trichoscopy standards (PMC 2024-2025):
+ * - temporal: sides of head
+ * - parietal: top sides
+ * - occipital: back of head
+ * - frontal: front/hairline
+ * - vertex: crown/top (used in AGA classification)
  */
-export type ScalpZone = 'temporal' | 'parietal' | 'occipital' | 'frontal';
+export type ScalpZone = 'temporal' | 'parietal' | 'occipital' | 'frontal' | 'vertex';
 
 /**
  * Raw image input for analysis
@@ -138,13 +144,13 @@ export interface IAttentionMap {
   /** Heatmap data as base64 image */
   heatmap: string;
   /** Top attention regions */
-  topRegions: Array<{
+  topRegions: {
     x: number;
     y: number;
     width: number;
     height: number;
     attention: number;
-  }>;
+  }[];
   /** Method used (Grad-CAM, ViT-CX, etc.) */
   method: 'grad-cam' | 'vit-cx' | 'attention-rollout';
 }

@@ -6,26 +6,25 @@ import {
   VisionEngineIntegration,
   createVisionEngineIntegration,
   createMockIntegration,
-  IIntegrationConfig,
-  IIntegrationDependencies,
-  DEFAULT_INTEGRATION_CONFIG,
+  type IIntegrationConfig,
+  type IIntegrationDependencies,
 } from './VisionEngineIntegration';
 import {
-  ITrichoscopyImage,
-  IImageEmbedding,
-  ISegmentationResult,
-  IMorphometryResult,
-  IDensityResult,
-  ICycleAnalysis,
+  type ITrichoscopyImage,
+  type IImageEmbedding,
+  type ISegmentationResult,
+  type IMorphometryResult,
+  type IDensityResult,
+  type ICycleAnalysis,
 } from '../vision/VisionTypes';
 import {
-  IFeatureExtractor,
-  ISegmentationModel,
-  IMorphometryHead,
-  IDensityHead,
-  ICycleHead,
+  type IFeatureExtractor,
+  type ISegmentationModel,
+  type IMorphometryHead,
+  type IDensityHead,
+  type ICycleHead,
 } from '../vision/TrichoscopyAnalyzer';
-import { IPatientContext, FollicleState } from '../trichology/domain/TrichologyStates';
+import { type IPatientContext } from '../trichology/domain/TrichologyStates';
 
 describe('VisionEngineIntegration', () => {
   // Mock implementations
@@ -108,7 +107,7 @@ describe('VisionEngineIntegration', () => {
     cycleHead: createMockCycleHead(),
   });
 
-  const createMockImage = (zone: string = 'temporal'): ITrichoscopyImage => ({
+  const createMockImage = (zone = 'temporal'): ITrichoscopyImage => ({
     data: 'base64mockdata',
     format: 'png',
     width: 1024,
@@ -172,7 +171,7 @@ describe('VisionEngineIntegration', () => {
     });
 
     it('should initialize patient with belief state', () => {
-      const int = createVisionEngineIntegration();
+      const _int = createVisionEngineIntegration();
       // Re-use already initialized integration
       const belief = integration.initializePatient('new-patient', createMockContext());
 
@@ -242,7 +241,7 @@ describe('VisionEngineIntegration', () => {
       );
 
       expect(result.beliefState).toBeDefined();
-      expect(result.beliefState!.confidence).toBeGreaterThan(0);
+      expect(result.beliefState.confidence).toBeGreaterThan(0);
     });
 
     it('should not update belief when autoUpdateBelief is false', async () => {
@@ -272,8 +271,8 @@ describe('VisionEngineIntegration', () => {
       );
 
       expect(result.recommendation).toBeDefined();
-      expect(result.recommendation!.primaryAction).toBeDefined();
-      expect(result.recommendation!.confidence).toBeGreaterThan(0);
+      expect(result.recommendation.primaryAction).toBeDefined();
+      expect(result.recommendation.confidence).toBeGreaterThan(0);
     });
 
     it('should track processing times', async () => {
@@ -297,9 +296,9 @@ describe('VisionEngineIntegration', () => {
       );
 
       expect(result.observation).toBeDefined();
-      expect(result.observation!.bulbWidth).toBeGreaterThan(0);
-      expect(result.observation!.density).toBeGreaterThan(0);
-      expect(result.observation!.zone).toBe('temporal');
+      expect(result.observation.bulbWidth).toBeGreaterThan(0);
+      expect(result.observation.density).toBeGreaterThan(0);
+      expect(result.observation.zone).toBe('temporal');
     });
   });
 
@@ -327,7 +326,7 @@ describe('VisionEngineIntegration', () => {
 
       expect(result.aggregatedBelief).toBeDefined();
       // After multiple observations, confidence should be higher
-      expect(result.aggregatedBelief!.confidence).toBeGreaterThan(0);
+      expect(result.aggregatedBelief.confidence).toBeGreaterThan(0);
     });
 
     it('should return final recommendation', async () => {
@@ -339,7 +338,7 @@ describe('VisionEngineIntegration', () => {
       const result = await integration.runBatchPipeline(patientId, images, createMockContext());
 
       expect(result.finalRecommendation).toBeDefined();
-      expect(result.finalRecommendation!.primaryAction).toBeDefined();
+      expect(result.finalRecommendation.primaryAction).toBeDefined();
     });
 
     it('should track zones analyzed', async () => {
@@ -526,7 +525,7 @@ describe('VisionEngineIntegration', () => {
 
       expect(result.recommendation).toBeDefined();
       // Finasteride should not be recommended for females
-      const explanation = result.recommendation!.explanation;
+      const explanation = result.recommendation.explanation;
       expect(explanation.whyNotOthers).toContain('Finasteride excluded: contraindicated for females');
     });
   });

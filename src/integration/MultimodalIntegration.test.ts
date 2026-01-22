@@ -6,46 +6,45 @@ import {
   MultimodalIntegration,
   createMultimodalIntegration,
   DEFAULT_MULTIMODAL_CONFIG,
-  IMultimodalInput,
-  IMultimodalDependencies,
+  type IMultimodalInput,
+  type IMultimodalDependencies,
 } from './MultimodalIntegration';
 
 import {
-  IAcousticRecording,
-  IAudioSignal,
-  IAcousticEnvironment,
-  IAudioEmbedding,
-  IAcousticTokens,
-  IMelSpectrogram,
-  ISpectralFeatures,
-  IPorosityAnalysis,
-  IHydrationAnalysis,
-  IStructuralAnalysis,
+  type IAcousticRecording,
+  type IAudioSignal,
+  type IAcousticEnvironment,
+  type IAudioEmbedding,
+  type IAcousticTokens,
+  type IMelSpectrogram,
+  type ISpectralFeatures,
+  type IPorosityAnalysis,
+  type IHydrationAnalysis,
+  type IStructuralAnalysis,
   DEFAULT_SENSOR_ARRAY,
 } from '../acoustic/AcousticTypes';
 
 import {
-  ISignalPreprocessor,
-  IAcousticAnalyzerComponents,
+  type ISignalPreprocessor,
 } from '../acoustic/AcousticAnalyzer';
 
 import {
-  IFeatureExtractorBackend,
-  IHairAnalysisBackend,
-  ISpectralAnalysisBackend,
+  type IFeatureExtractorBackend,
+  type IHairAnalysisBackend,
+  type ISpectralAnalysisBackend,
 } from '../acoustic/AcousticTypes';
 
 import {
-  ITrichoscopyImage,
-  IFeatureExtractor,
-  ISegmentationModel,
-  IMorphometryHead,
-  IDensityHead,
-  ICycleHead,
+  type ITrichoscopyImage,
+  type IFeatureExtractor,
+  type ISegmentationModel,
+  type IMorphometryHead,
+  type IDensityHead,
+  type ICycleHead,
 } from '../vision';
 
-import { IPatientContext } from '../trichology/domain/TrichologyStates';
-import { ScalpZone } from '../vision/VisionTypes';
+import { type IPatientContext } from '../trichology/domain/TrichologyStates';
+import { type ScalpZone } from '../vision/VisionTypes';
 
 describe('MultimodalIntegration', () => {
   // ===========================================================================
@@ -152,8 +151,8 @@ describe('MultimodalIntegration', () => {
   // ===========================================================================
 
   const createMockSignal = (
-    duration: number = 10,
-    sampleRate: number = 48000
+    duration = 10,
+    sampleRate = 48000
   ): IAudioSignal => ({
     data: new Float32Array(duration * sampleRate).fill(0.1),
     sampleRate,
@@ -163,7 +162,7 @@ describe('MultimodalIntegration', () => {
     sourceChannel: 'primary',
   });
 
-  const createMockEnvironment = (qualityScore: number = 0.9): IAcousticEnvironment => ({
+  const createMockEnvironment = (qualityScore = 0.9): IAcousticEnvironment => ({
     ambientNoiseDb: 45,
     temperature: 22,
     humidity: 50,
@@ -173,7 +172,7 @@ describe('MultimodalIntegration', () => {
 
   const createMockRecording = (
     zone: ScalpZone = 'temporal',
-    duration: number = 10
+    duration = 10
   ): IAcousticRecording => {
     const signals = new Map<string, IAudioSignal>();
     signals.set('primary', createMockSignal(duration));

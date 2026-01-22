@@ -10,34 +10,34 @@ import {
 } from './AcousticEngineIntegration';
 
 import {
-  IAcousticRecording,
-  IAudioSignal,
-  IAcousticEnvironment,
-  IAudioEmbedding,
-  IAcousticTokens,
-  IMelSpectrogram,
-  ISpectralFeatures,
-  IPorosityAnalysis,
-  IHydrationAnalysis,
-  IStructuralAnalysis,
+  type IAcousticRecording,
+  type IAudioSignal,
+  type IAcousticEnvironment,
+  type IAudioEmbedding,
+  type IAcousticTokens,
+  type IMelSpectrogram,
+  type ISpectralFeatures,
+  type IPorosityAnalysis,
+  type IHydrationAnalysis,
+  type IStructuralAnalysis,
   DEFAULT_SENSOR_ARRAY,
 } from '../acoustic/AcousticTypes';
 
 import {
-  ISignalPreprocessor,
-  IAcousticAnalyzerComponents,
-  IAcousticVectorDatabase,
-  IAcousticSimilarCase,
+  type ISignalPreprocessor,
+  type IAcousticAnalyzerComponents,
+  type IAcousticVectorDatabase,
+  type IAcousticSimilarCase,
 } from '../acoustic/AcousticAnalyzer';
 
 import {
-  IFeatureExtractorBackend,
-  IHairAnalysisBackend,
-  ISpectralAnalysisBackend,
+  type IFeatureExtractorBackend,
+  type IHairAnalysisBackend,
+  type ISpectralAnalysisBackend,
 } from '../acoustic/AcousticTypes';
 
-import { IPatientContext, IFollicleObservation } from '../trichology/domain/TrichologyStates';
-import { ScalpZone } from '../vision/VisionTypes';
+import { type IPatientContext, type IFollicleObservation } from '../trichology/domain/TrichologyStates';
+import { type ScalpZone } from '../vision/VisionTypes';
 
 describe('AcousticEngineIntegration', () => {
   // ===========================================================================
@@ -45,8 +45,8 @@ describe('AcousticEngineIntegration', () => {
   // ===========================================================================
 
   const createMockSignal = (
-    duration: number = 10,
-    sampleRate: number = 48000
+    duration = 10,
+    sampleRate = 48000
   ): IAudioSignal => ({
     data: new Float32Array(duration * sampleRate).fill(0.1),
     sampleRate,
@@ -56,7 +56,7 @@ describe('AcousticEngineIntegration', () => {
     sourceChannel: 'primary',
   });
 
-  const createMockEnvironment = (qualityScore: number = 0.9): IAcousticEnvironment => ({
+  const createMockEnvironment = (qualityScore = 0.9): IAcousticEnvironment => ({
     ambientNoiseDb: 45,
     temperature: 22,
     humidity: 50,
@@ -66,7 +66,7 @@ describe('AcousticEngineIntegration', () => {
 
   const createMockRecording = (
     zone: ScalpZone = 'temporal',
-    duration: number = 10
+    duration = 10
   ): IAcousticRecording => {
     const signals = new Map<string, IAudioSignal>();
     signals.set('primary', createMockSignal(duration));

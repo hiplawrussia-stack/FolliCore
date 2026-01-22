@@ -16,30 +16,25 @@
 
 import {
   // Signal types
-  IAudioSignal,
-  IAcousticRecording,
-  IAcousticEnvironment,
+  type IAudioSignal,
+  type IAcousticRecording,
+  type IAcousticEnvironment,
 
   // Spectral types
-  IMelSpectrogram,
-  ISpectralFeatures,
-  ITimeFrequencyAnalysis,
+  type ITimeFrequencyAnalysis,
 
   // ML types
-  IAudioEmbedding,
-  IAcousticTokens,
+  type IAudioEmbedding,
+  type IAcousticTokens,
 
   // Analysis types
-  IPorosityAnalysis,
-  IHydrationAnalysis,
-  IStructuralAnalysis,
-  IAcousticAnalysisResult,
-  IAcousticQualityFlags,
-  IAcousticObservation,
+  type IAcousticAnalysisResult,
+  type IAcousticQualityFlags,
+  type IAcousticObservation,
   toAcousticObservation,
 
   // Configuration
-  IAcousticConfig,
+  type IAcousticConfig,
   DEFAULT_ACOUSTIC_CONFIG,
   EDGE_ACOUSTIC_CONFIG,
 
@@ -47,16 +42,16 @@ import {
   ACOUSTIC_NORMS,
 
   // Backend interfaces
-  IFeatureExtractorBackend,
-  IHairAnalysisBackend,
-  ISpectralAnalysisBackend,
+  type IFeatureExtractorBackend,
+  type IHairAnalysisBackend,
+  type ISpectralAnalysisBackend,
 
   // Errors
   AcousticError,
   AcousticErrorCode,
 } from './AcousticTypes';
 
-import { ScalpZone } from '../vision/VisionTypes';
+import { type ScalpZone } from '../vision/VisionTypes';
 
 // ============================================================================
 // ADDITIONAL BACKEND INTERFACES
@@ -263,34 +258,34 @@ export class AcousticAnalyzer {
     }
 
     // Step 4: Preprocess signal
-    let processedSignal = this.preprocessor!.normalize(primarySignal);
+    let processedSignal = this.preprocessor.normalize(primarySignal);
     if (referenceSignal) {
-      processedSignal = await this.preprocessor!.reduceNoise(
+      processedSignal = await this.preprocessor.reduceNoise(
         processedSignal,
         referenceSignal
       );
     }
-    processedSignal = await this.preprocessor!.preprocess(processedSignal);
+    processedSignal = await this.preprocessor.preprocess(processedSignal);
 
     // Step 5: Spectral analysis
     const spectralAnalysis = await this.performSpectralAnalysis(processedSignal);
 
     // Step 6: Extract embeddings
-    const embedding = await this.featureExtractor!.extractEmbedding(processedSignal);
+    const embedding = await this.featureExtractor.extractEmbedding(processedSignal);
 
     // Step 7: Extract acoustic tokens (optional, for multimodal fusion)
     let acousticTokens: IAcousticTokens | undefined;
     try {
-      acousticTokens = await this.featureExtractor!.extractTokens(processedSignal);
+      acousticTokens = await this.featureExtractor.extractTokens(processedSignal);
     } catch {
       // Tokens are optional, continue without them
     }
 
     // Step 8: Hair structure analysis
     const [porosity, hydration, structure] = await Promise.all([
-      this.hairAnalysisBackend!.analyzePorosity(embedding, spectralAnalysis),
-      this.hairAnalysisBackend!.analyzeHydration(embedding, spectralAnalysis),
-      this.hairAnalysisBackend!.analyzeStructure(embedding, spectralAnalysis),
+      this.hairAnalysisBackend.analyzePorosity(embedding, spectralAnalysis),
+      this.hairAnalysisBackend.analyzeHydration(embedding, spectralAnalysis),
+      this.hairAnalysisBackend.analyzeStructure(embedding, spectralAnalysis),
     ]);
 
     // Step 9: Calculate overall confidence
@@ -403,7 +398,7 @@ export class AcousticAnalyzer {
    * @returns Similar cases
    */
   async findSimilar(embedding: IAudioEmbedding): Promise<IAcousticSimilarCase[]> {
-    if (!this.vectorDb || !this.vectorDb.isConnected()) {
+    if (!this.vectorDb?.isConnected()) {
       return [];
     }
 
@@ -566,10 +561,10 @@ export class AcousticAnalyzer {
   private getPrimarySignal(recording: IAcousticRecording): IAudioSignal {
     // Try to get primary channel, fall back to first available
     const primary = recording.signals.get('primary');
-    if (primary) return primary;
+    if (primary) {return primary;}
 
     const contact = recording.signals.get('contact');
-    if (contact) return contact;
+    if (contact) {return contact;}
 
     // Get first available signal
     const firstSignal = recording.signals.values().next().value;
@@ -600,7 +595,7 @@ export class AcousticAnalyzer {
     const warnings: string[] = [];
 
     // Calculate SNR
-    const snr = this.preprocessor!.calculateSnr(signal, reference || undefined);
+    const snr = this.preprocessor.calculateSnr(signal, reference || undefined);
     const snrAcceptable = snr >= this.config.thresholds.minSnrDb;
     if (!snrAcceptable) {
       warnings.push(`Low SNR: ${snr.toFixed(1)} dB (minimum: ${this.config.thresholds.minSnrDb} dB)`);
@@ -622,7 +617,7 @@ export class AcousticAnalyzer {
     }
 
     // Detect motion artifacts
-    const motionArtifactsDetected = this.preprocessor!.detectMotionArtifacts(signal);
+    const motionArtifactsDetected = this.preprocessor.detectMotionArtifacts(signal);
     if (motionArtifactsDetected) {
       warnings.push('Motion artifacts detected');
     }
@@ -654,18 +649,18 @@ export class AcousticAnalyzer {
     signal: IAudioSignal
   ): Promise<ITimeFrequencyAnalysis> {
     // Compute mel spectrogram
-    const melSpectrogram = await this.spectralBackend!.computeMelSpectrogram(
+    const melSpectrogram = await this.spectralBackend.computeMelSpectrogram(
       signal,
       this.config.spectral
     );
 
     // Extract frame-wise spectral features
     const spectralFeatures =
-      await this.spectralBackend!.extractSpectralFeatures(melSpectrogram);
+      await this.spectralBackend.extractSpectralFeatures(melSpectrogram);
 
     // Compute global features
     const globalFeatures =
-      this.spectralBackend!.computeGlobalFeatures(spectralFeatures);
+      this.spectralBackend.computeGlobalFeatures(spectralFeatures);
 
     return {
       melSpectrogram,
@@ -680,7 +675,7 @@ export class AcousticAnalyzer {
    */
   private calculateOverallConfidence(...confidences: number[]): number {
     const validConfidences = confidences.filter(c => c > 0 && c <= 1);
-    if (validConfidences.length === 0) return 0;
+    if (validConfidences.length === 0) {return 0;}
 
     // Weighted geometric mean (emphasizes low values)
     const product = validConfidences.reduce((acc, c) => acc * c, 1);
@@ -767,9 +762,9 @@ export class AcousticAnalyzer {
   private classifyHealthScore(
     score: number
   ): 'excellent' | 'good' | 'fair' | 'poor' {
-    if (score >= 0.8) return 'excellent';
-    if (score >= 0.6) return 'good';
-    if (score >= 0.4) return 'fair';
+    if (score >= 0.8) {return 'excellent';}
+    if (score >= 0.6) {return 'good';}
+    if (score >= 0.4) {return 'fair';}
     return 'poor';
   }
 

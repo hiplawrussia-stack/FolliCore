@@ -6,40 +6,34 @@ import {
   AcousticAnalyzer,
   createAcousticAnalyzer,
   createEdgeAcousticAnalyzer,
-  ISignalPreprocessor,
-  IAcousticAnalyzerComponents,
-  IAcousticVectorDatabase,
-  IAcousticSimilarCase,
-  IMultiZoneAcousticResult,
-  IAcousticNormComparison,
+  type ISignalPreprocessor,
+  type IAcousticAnalyzerComponents,
+  type IAcousticVectorDatabase,
+  type IAcousticSimilarCase,
 } from './AcousticAnalyzer';
 
 import {
-  IAudioSignal,
-  IAcousticRecording,
-  IAcousticEnvironment,
-  IAudioEmbedding,
-  IAcousticTokens,
-  IMelSpectrogram,
-  ISpectralFeatures,
-  ITimeFrequencyAnalysis,
-  IPorosityAnalysis,
-  IHydrationAnalysis,
-  IStructuralAnalysis,
-  IAcousticConfig,
+  type IAudioSignal,
+  type IAcousticRecording,
+  type IAcousticEnvironment,
+  type IAudioEmbedding,
+  type IAcousticTokens,
+  type IMelSpectrogram,
+  type ISpectralFeatures,
+  type IPorosityAnalysis,
+  type IHydrationAnalysis,
+  type IStructuralAnalysis,
+  type IAcousticConfig,
   DEFAULT_ACOUSTIC_CONFIG,
-  EDGE_ACOUSTIC_CONFIG,
-  ACOUSTIC_NORMS,
   AcousticError,
   AcousticErrorCode,
-  IFeatureExtractorBackend,
-  IHairAnalysisBackend,
-  ISpectralAnalysisBackend,
-  ISensorArrayConfig,
+  type IFeatureExtractorBackend,
+  type IHairAnalysisBackend,
+  type ISpectralAnalysisBackend,
   DEFAULT_SENSOR_ARRAY,
 } from './AcousticTypes';
 
-import { ScalpZone } from '../vision/VisionTypes';
+import { type ScalpZone } from '../vision/VisionTypes';
 
 describe('AcousticAnalyzer', () => {
   // ===========================================================================
@@ -47,8 +41,8 @@ describe('AcousticAnalyzer', () => {
   // ===========================================================================
 
   const createMockSignal = (
-    duration: number = 5,
-    sampleRate: number = 48000
+    duration = 5,
+    sampleRate = 48000
   ): IAudioSignal => ({
     data: new Float32Array(duration * sampleRate).fill(0.1),
     sampleRate,
@@ -59,7 +53,7 @@ describe('AcousticAnalyzer', () => {
   });
 
   const createMockEnvironment = (
-    qualityScore: number = 0.9
+    qualityScore = 0.9
   ): IAcousticEnvironment => ({
     ambientNoiseDb: 45,
     temperature: 22,
@@ -70,7 +64,7 @@ describe('AcousticAnalyzer', () => {
 
   const createMockRecording = (
     zone: ScalpZone = 'temporal',
-    duration: number = 10
+    duration = 10
   ): IAcousticRecording => {
     const signals = new Map<string, IAudioSignal>();
     signals.set('primary', createMockSignal(duration));
@@ -663,12 +657,12 @@ describe('AcousticAnalyzer', () => {
 
   describe('findSimilar()', () => {
     let analyzer: AcousticAnalyzer;
-    let mockVectorDb: IAcousticVectorDatabase;
+    let _mockVectorDb: IAcousticVectorDatabase;
 
     beforeEach(async () => {
       analyzer = new AcousticAnalyzer();
       const components = createMockComponents();
-      mockVectorDb = components.vectorDb!;
+      _mockVectorDb = components.vectorDb!;
       await analyzer.initialize(components);
     });
 

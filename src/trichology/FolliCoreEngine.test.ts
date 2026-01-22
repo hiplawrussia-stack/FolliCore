@@ -5,18 +5,16 @@
 import {
   FolliCoreEngine,
   createFolliCoreEngine,
-  IFolliCoreConfig,
-  ITreatmentRecommendation,
-  ITrajectoryPrediction,
+  type IFolliCoreConfig,
+  type ITreatmentRecommendation,
 } from './FolliCoreEngine';
 
 import {
   FollicleState,
   TrichologyAction,
-  IFollicleObservation,
-  IAcousticObservation,
-  IPatientContext,
-  ITrichologyBeliefState,
+  type IFollicleObservation,
+  type IAcousticObservation,
+  type IPatientContext,
 } from './domain/TrichologyStates';
 
 describe('FolliCoreEngine', () => {
@@ -242,8 +240,8 @@ describe('FolliCoreEngine', () => {
     });
 
     it('should update progression risk', () => {
-      const initialBelief = engine.getBeliefState('patient-1')!;
-      const initialRisk = initialBelief.progressionRisk;
+      const initialBelief = engine.getBeliefState('patient-1');
+      const _initialRisk = initialBelief.progressionRisk;
 
       const observation = createObservation({
         vellusTerminalRatio: 0.4,  // Higher = worse
@@ -291,7 +289,7 @@ describe('FolliCoreEngine', () => {
       engine.updateBelief('patient-1', createObservation({ density: 140 }));
       engine.updateBelief('patient-1', createObservation({ density: 130 }));
 
-      const belief = engine.getBeliefState('patient-1')!;
+      const belief = engine.getBeliefState('patient-1');
       expect(belief.beliefHistory.length).toBe(3);
     });
   });
@@ -487,7 +485,7 @@ describe('FolliCoreEngine', () => {
       const belief = engine.getBeliefState('patient-1');
 
       expect(belief).toBeDefined();
-      expect(belief!.stateDistribution).toBeInstanceOf(Map);
+      expect(belief.stateDistribution).toBeInstanceOf(Map);
     });
 
     it('should return updated belief after observations', () => {
@@ -498,7 +496,7 @@ describe('FolliCoreEngine', () => {
 
       const belief = engine.getBeliefState('patient-1');
 
-      expect(belief!.beliefHistory.length).toBe(1);
+      expect(belief.beliefHistory.length).toBe(1);
     });
   });
 
@@ -619,7 +617,7 @@ describe('FolliCoreEngine', () => {
         vellusTerminalRatio: 0.2,
         density: 160,
       });
-      const belief2 = engine.updateBelief('journey-patient', obs2, undefined, context);
+      const _belief2 = engine.updateBelief('journey-patient', obs2, undefined, context);
 
       // 6. Trajectory prediction
       const prediction = engine.predictTrajectory('journey-patient');
@@ -645,8 +643,8 @@ describe('FolliCoreEngine', () => {
       const belief1 = engine.getBeliefState('patient-1');
       const belief2 = engine.getBeliefState('patient-2');
 
-      expect(belief1!.chronologicalAge).toBe(25);
-      expect(belief2!.chronologicalAge).toBe(45);
+      expect(belief1.chronologicalAge).toBe(25);
+      expect(belief2.chronologicalAge).toBe(45);
     });
 
     it('should build strategy with conditional escalation', () => {

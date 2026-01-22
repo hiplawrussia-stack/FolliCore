@@ -11,38 +11,36 @@
  */
 
 import {
-  AcousticAnalyzer,
-  IAcousticAnalyzerComponents,
+  type AcousticAnalyzer,
+  type IAcousticAnalyzerComponents,
   createAcousticAnalyzer,
   createEdgeAcousticAnalyzer,
-  IMultiZoneAcousticResult,
-  IAcousticNormComparison,
+  type IMultiZoneAcousticResult,
+  type IAcousticNormComparison,
 } from '../acoustic/AcousticAnalyzer';
 
 import {
-  IAcousticRecording,
-  IAcousticAnalysisResult,
-  IAcousticObservation,
-  IAcousticConfig,
-  DEFAULT_ACOUSTIC_CONFIG,
-  EDGE_ACOUSTIC_CONFIG,
+  type IAcousticRecording,
+  type IAcousticAnalysisResult,
+  type IAcousticObservation,
+  type IAcousticConfig,
   toAcousticObservation,
 } from '../acoustic/AcousticTypes';
 
 import {
   FolliCoreEngine,
-  IFolliCoreConfig,
-  ITreatmentRecommendation,
-  ITrajectoryPrediction,
+  type IFolliCoreConfig,
+  type ITreatmentRecommendation,
+  type ITrajectoryPrediction,
 } from '../trichology/FolliCoreEngine';
 
 import {
-  IPatientContext,
-  IFollicleObservation,
-  ITrichologyBeliefState,
+  type IPatientContext,
+  type IFollicleObservation,
+  type ITrichologyBeliefState,
 } from '../trichology/domain/TrichologyStates';
 
-import { ScalpZone } from '../vision/VisionTypes';
+import { type ScalpZone } from '../vision/VisionTypes';
 
 /**
  * Configuration for the acoustic-engine integration
@@ -141,7 +139,7 @@ export class AcousticEngineIntegration {
   private config: IAcousticIntegrationConfig;
   private analyzer: AcousticAnalyzer;
   private engine: FolliCoreEngine;
-  private initialized: boolean = false;
+  private initialized = false;
 
   constructor(config: Partial<IAcousticIntegrationConfig> = {}) {
     this.config = { ...DEFAULT_ACOUSTIC_INTEGRATION_CONFIG, ...config };

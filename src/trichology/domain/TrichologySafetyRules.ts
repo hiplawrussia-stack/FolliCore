@@ -5,7 +5,7 @@
  * Replaces Constitutional AI with domain-specific rules.
  */
 
-import { TrichologyAction, FollicleState, IPatientContext } from './TrichologyStates';
+import { TrichologyAction, FollicleState, type IPatientContext } from './TrichologyStates';
 
 /**
  * Safety rule types
@@ -43,7 +43,7 @@ export const TRICHOLOGY_SAFETY_RULES: ISafetyRule[] = [
     id: 'NEVER_DIAGNOSE_DISEASE',
     type: 'NEVER',
     description: 'Never provide medical diagnoses',
-    check: (ctx) => ({
+    check: (_ctx) => ({
       passed: true,  // System design prevents this
       ruleId: 'NEVER_DIAGNOSE_DISEASE',
       severity: 'info',
@@ -54,7 +54,7 @@ export const TRICHOLOGY_SAFETY_RULES: ISafetyRule[] = [
     id: 'NEVER_PROMISE_RESULTS',
     type: 'NEVER',
     description: 'Never promise specific treatment outcomes',
-    check: (ctx) => ({
+    check: (_ctx) => ({
       passed: true,  // All outputs are probabilistic
       ruleId: 'NEVER_PROMISE_RESULTS',
       severity: 'info',

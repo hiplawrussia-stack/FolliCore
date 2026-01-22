@@ -8,20 +8,19 @@
  */
 
 import {
-  ITrichoscopyImage,
-  ITrichoscopyAnalysis,
-  IImageEmbedding,
-  IMorphometryResult,
-  IDensityResult,
-  ICycleAnalysis,
-  ISegmentationResult,
-  IAttentionMap,
-  ISimilarCase,
-  IVisionConfig,
+  type ITrichoscopyImage,
+  type ITrichoscopyAnalysis,
+  type IImageEmbedding,
+  type IMorphometryResult,
+  type IDensityResult,
+  type ICycleAnalysis,
+  type ISegmentationResult,
+  type IAttentionMap,
+  type ISimilarCase,
+  type IVisionConfig,
   DEFAULT_VISION_CONFIG,
   VisionError,
   VisionErrorCode,
-  ScalpZone,
 } from './VisionTypes';
 
 /**
@@ -48,7 +47,7 @@ export interface ISegmentationModel {
   /** Interactive segmentation with point prompt */
   segmentWithPoints(
     image: ITrichoscopyImage,
-    points: Array<{ x: number; y: number; label: 'foreground' | 'background' }>
+    points: { x: number; y: number; label: 'foreground' | 'background' }[]
   ): Promise<ISegmentationResult>;
   isLoaded(): boolean;
   load(): Promise<void>;
@@ -190,26 +189,26 @@ export class TrichoscopyAnalyzer {
     this.validateImage(image);
 
     // Step 1: Extract features (DINOv2)
-    const embedding = await this.featureExtractor!.extract(image);
+    const embedding = await this.featureExtractor.extract(image);
 
     // Step 2: Segment image (SAM/MedSAM)
-    const segmentation = await this.segmentationModel!.segment(image, embedding);
+    const segmentation = await this.segmentationModel.segment(image, embedding);
 
     // Step 3: Extract morphometry
-    const morphometry = await this.morphometryHead!.extract(
+    const morphometry = await this.morphometryHead.extract(
       embedding,
       segmentation,
       this.config.morphometry.calibration
     );
 
     // Step 4: Analyze density
-    const density = await this.densityHead!.analyze(
+    const density = await this.densityHead.analyze(
       segmentation,
       this.config.morphometry.calibration
     );
 
     // Step 5: Classify hair cycle phases
-    const cycleAnalysis = await this.cycleHead!.classify(embedding, segmentation);
+    const cycleAnalysis = await this.cycleHead.classify(embedding, segmentation);
 
     // Step 6: Optional - Find similar cases
     let similarCases: ISimilarCase[] | undefined;
@@ -287,7 +286,7 @@ export class TrichoscopyAnalyzer {
    */
   async interactiveSegment(
     image: ITrichoscopyImage,
-    points: Array<{ x: number; y: number; label: 'foreground' | 'background' }>
+    points: { x: number; y: number; label: 'foreground' | 'background' }[]
   ): Promise<ISegmentationResult> {
     if (!this.segmentationModel) {
       throw new VisionError(
@@ -343,8 +342,8 @@ export class TrichoscopyAnalyzer {
    * Cleanup resources
    */
   async dispose(): Promise<void> {
-    if (this.featureExtractor) await this.featureExtractor.unload();
-    if (this.segmentationModel) await this.segmentationModel.unload();
+    if (this.featureExtractor) {await this.featureExtractor.unload();}
+    if (this.segmentationModel) {await this.segmentationModel.unload();}
     this.isInitialized = false;
   }
 
@@ -376,7 +375,7 @@ export class TrichoscopyAnalyzer {
   private calculateOverallConfidence(...confidences: number[]): number {
     // Weighted geometric mean
     const validConfidences = confidences.filter(c => c > 0);
-    if (validConfidences.length === 0) return 0;
+    if (validConfidences.length === 0) {return 0;}
 
     const product = validConfidences.reduce((acc, c) => acc * c, 1);
     return Math.pow(product, 1 / validConfidences.length);

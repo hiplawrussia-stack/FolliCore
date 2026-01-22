@@ -6,14 +6,14 @@ import {
   DEFAULT_VISION_CONFIG,
   VisionError,
   VisionErrorCode,
-  ScalpZone,
-  IVisionConfig,
-  ITrichoscopyImage,
-  IImageEmbedding,
-  IMorphometryResult,
-  IDensityResult,
-  ICycleAnalysis,
-  ISegmentationResult,
+  type ScalpZone,
+  type IVisionConfig,
+  type ITrichoscopyImage,
+  type IImageEmbedding,
+  type IMorphometryResult,
+  type IDensityResult,
+  type ICycleAnalysis,
+  type ISegmentationResult,
 } from './VisionTypes';
 
 describe('VisionTypes', () => {

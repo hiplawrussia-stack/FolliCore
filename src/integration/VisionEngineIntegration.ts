@@ -14,32 +14,30 @@
 import {
   TrichoscopyAnalyzer,
   VisionBeliefAdapter,
-  ITrichoscopyAnalysis,
-  ITrichoscopyImage,
-  IVisionAdapterConfig,
-  DEFAULT_ADAPTER_CONFIG,
-  IStateInference,
-  IFeatureExtractor,
-  ISegmentationModel,
-  IMorphometryHead,
-  IDensityHead,
-  ICycleHead,
-  IVisionConfig,
-  DEFAULT_VISION_CONFIG,
+  type ITrichoscopyAnalysis,
+  type ITrichoscopyImage,
+  type IVisionAdapterConfig,
+  type IStateInference,
+  type IFeatureExtractor,
+  type ISegmentationModel,
+  type IMorphometryHead,
+  type IDensityHead,
+  type ICycleHead,
+  type IVisionConfig,
 } from '../vision';
 
 import {
   FolliCoreEngine,
-  IFolliCoreConfig,
-  ITreatmentRecommendation,
-  ITrajectoryPrediction,
+  type IFolliCoreConfig,
+  type ITreatmentRecommendation,
+  type ITrajectoryPrediction,
 } from '../trichology/FolliCoreEngine';
 
 import {
-  IPatientContext,
-  IFollicleObservation,
-  ITrichologyBeliefState,
-  IAcousticObservation,
+  type IPatientContext,
+  type IFollicleObservation,
+  type ITrichologyBeliefState,
+  type IAcousticObservation,
 } from '../trichology/domain/TrichologyStates';
 
 /**
@@ -132,7 +130,7 @@ export class VisionEngineIntegration {
   private analyzer: TrichoscopyAnalyzer;
   private adapter: VisionBeliefAdapter;
   private engine: FolliCoreEngine;
-  private initialized: boolean = false;
+  private initialized = false;
 
   constructor(config: Partial<IIntegrationConfig> = {}) {
     this.config = { ...DEFAULT_INTEGRATION_CONFIG, ...config };

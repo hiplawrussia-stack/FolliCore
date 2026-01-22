@@ -12,11 +12,11 @@
 import {
   FollicleState,
   TrichologyAction,
-  IFollicleObservation,
-  IAcousticObservation,
-  IPatientContext,
-  ITrichologyBeliefState,
-  IActionMetadata,
+  type IFollicleObservation,
+  type IAcousticObservation,
+  type IPatientContext,
+  type ITrichologyBeliefState,
+  type IActionMetadata,
   DEFAULT_ACTION_METADATA,
   estimateFollicleAge,
   PGMU_NORMS,
@@ -24,10 +24,9 @@ import {
 } from './domain/TrichologyStates';
 
 import {
-  runSafetyChecks,
   isActionSafe,
   getSafeAlternative,
-  SafetyCheckContext,
+  type SafetyCheckContext,
 } from './domain/TrichologySafetyRules';
 
 /**
@@ -49,11 +48,11 @@ export interface ITreatmentRecommendation {
   expectedBenefit: number;
 
   // Alternative actions ranked
-  alternatives: Array<{
+  alternatives: {
     action: TrichologyAction;
     score: number;
     reasoning: string;
-  }>;
+  }[];
 
   // Strategy timeline
   strategy: IStrategyStep[];
@@ -115,9 +114,9 @@ const DEFAULT_CONFIG: IFolliCoreConfig = {
  */
 export class FolliCoreEngine {
   private config: IFolliCoreConfig;
-  private patientBeliefs: Map<string, ITrichologyBeliefState> = new Map();
-  private thompsonArms: Map<string, IThompsonArm[]> = new Map();
-  private treatmentHistory: Map<string, any[]> = new Map();
+  private patientBeliefs = new Map<string, ITrichologyBeliefState>();
+  private thompsonArms = new Map<string, IThompsonArm[]>();
+  private treatmentHistory = new Map<string, any[]>();
 
   constructor(config: Partial<IFolliCoreConfig> = {}) {
     this.config = { ...DEFAULT_CONFIG, ...config };
@@ -171,8 +170,8 @@ export class FolliCoreEngine {
           return false;
         }
         // Filter by age
-        if (meta.minAge && context.age < meta.minAge) return false;
-        if (meta.maxAge && context.age > meta.maxAge) return false;
+        if (meta.minAge && context.age < meta.minAge) {return false;}
+        if (meta.maxAge && context.age > meta.maxAge) {return false;}
         return true;
       })
       .map(meta => ({
@@ -299,7 +298,7 @@ export class FolliCoreEngine {
 
     // Deviation from normal
     const bulbDeviation = (observation.bulbWidth - norms.bulbWidth) / norms.bulbWidth;
-    const shaftDeviation = (observation.shaftThickness - norms.shaftThickness) / norms.shaftThickness;
+    const _shaftDeviation = (observation.shaftThickness - norms.shaftThickness) / norms.shaftThickness;
     const anagenRatio = observation.anagenTelogenRatio;
     const vellusRatio = observation.vellusTerminalRatio;
 
@@ -605,7 +604,7 @@ export class FolliCoreEngine {
   /**
    * Get expected outcome description
    */
-  private getExpectedOutcome(action: TrichologyAction, belief: ITrichologyBeliefState): string {
+  private getExpectedOutcome(action: TrichologyAction, _belief: ITrichologyBeliefState): string {
     const outcomes: Record<TrichologyAction, string> = {
       [TrichologyAction.MINOXIDIL_2]: 'Stabilization of density, potential 10-15% improvement in 6 months',
       [TrichologyAction.MINOXIDIL_5]: 'Stabilization of density, potential 15-20% improvement in 6 months',
@@ -658,7 +657,7 @@ export class FolliCoreEngine {
     if (context.gender === 'female') {
       whyNotOthers.push('Finasteride excluded: contraindicated for females');
     }
-    if (belief.stateDistribution.get(FollicleState.INFLAMMATION)! > 0.2) {
+    if (belief.stateDistribution.get(FollicleState.INFLAMMATION) > 0.2) {
       whyNotOthers.push('Aggressive stimulation avoided due to inflammation risk');
     }
 
@@ -694,10 +693,10 @@ export class FolliCoreEngine {
     outcome: 'positive' | 'neutral' | 'negative'
   ): void {
     const arms = this.thompsonArms.get(patientId);
-    if (!arms) return;
+    if (!arms) {return;}
 
     const arm = arms.find(a => a.action === action);
-    if (!arm) return;
+    if (!arm) {return;}
 
     switch (outcome) {
       case 'positive':
@@ -726,7 +725,7 @@ export class FolliCoreEngine {
    */
   public predictTrajectory(
     patientId: string,
-    horizonMonths: number = 12
+    horizonMonths = 12
   ): ITrajectoryPrediction {
     const belief = this.patientBeliefs.get(patientId);
     if (!belief) {
@@ -752,7 +751,7 @@ export class FolliCoreEngine {
 
     // Normalize
     let total = 0;
-    for (const prob of predictedState.values()) total += prob;
+    for (const prob of predictedState.values()) {total += prob;}
     for (const [state, prob] of predictedState) {
       predictedState.set(state, prob / total);
     }

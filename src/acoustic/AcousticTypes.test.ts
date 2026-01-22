@@ -4,54 +4,49 @@
 
 import {
   // Sensor types
-  AcousticSensorType,
-  ISensorChannel,
-  ISensorArrayConfig,
+  type AcousticSensorType,
+  type ISensorChannel,
   DEFAULT_SENSOR_ARRAY,
 
   // Audio signal types
-  IAudioSignal,
-  IAcousticRecording,
-  IAcousticEnvironment,
+  type IAudioSignal,
+  type IAcousticEnvironment,
 
   // Spectral types
-  IMelSpectrogram,
-  ISpectralFeatures,
-  ITimeFrequencyAnalysis,
+  type IMelSpectrogram,
+  type ISpectralFeatures,
 
   // Embedding types
-  IAudioEmbedding,
-  IAcousticTokens,
-  AcousticModelType,
+  type IAudioEmbedding,
+  type IAcousticTokens,
+  type AcousticModelType,
 
   // Hair analysis types
-  HairStructureClass,
-  PorosityLevel,
-  HydrationLevel,
-  IPorosityAnalysis,
-  IHydrationAnalysis,
-  IStructuralAnalysis,
-  DamageType,
+  type HairStructureClass,
+  type PorosityLevel,
+  type HydrationLevel,
+  type IPorosityAnalysis,
+  type IHydrationAnalysis,
+  type IStructuralAnalysis,
+  type DamageType,
 
   // Complete analysis
-  IAcousticAnalysisResult,
-  IAcousticQualityFlags,
-  IAcousticObservation,
+  type IAcousticAnalysisResult,
+  type IAcousticQualityFlags,
   toAcousticObservation,
 
   // Configuration
-  IAcousticConfig,
+  type IAcousticConfig,
   DEFAULT_ACOUSTIC_CONFIG,
   EDGE_ACOUSTIC_CONFIG,
 
   // Protocol
-  MeasurementPhase,
-  IMeasurementProtocol,
+  type MeasurementPhase,
   DEFAULT_MEASUREMENT_PROTOCOL,
-  IMeasurementSession,
+  type IMeasurementSession,
 
   // Reference data
-  IAcousticReference,
+  type IAcousticReference,
   ACOUSTIC_NORMS,
 
   // Error types
@@ -59,9 +54,9 @@ import {
   AcousticError,
 
   // Backend interfaces
-  IFeatureExtractorBackend,
-  IHairAnalysisBackend,
-  ISpectralAnalysisBackend,
+  type IFeatureExtractorBackend,
+  type IHairAnalysisBackend,
+  type ISpectralAnalysisBackend,
 } from './AcousticTypes';
 
 describe('AcousticTypes', () => {
@@ -90,23 +85,23 @@ describe('AcousticTypes', () => {
       it('should have ScAlN MEMS as primary channel', () => {
         const primary = DEFAULT_SENSOR_ARRAY.channels.find(c => c.channelId === 'primary');
         expect(primary).toBeDefined();
-        expect(primary!.sensorType).toBe('scaln_mems');
-        expect(primary!.frequencyRange[0]).toBe(200000);
-        expect(primary!.frequencyRange[1]).toBe(2000000);
+        expect(primary.sensorType).toBe('scaln_mems');
+        expect(primary.frequencyRange[0]).toBe(200000);
+        expect(primary.frequencyRange[1]).toBe(2000000);
       });
 
       it('should have piezo contact as secondary channel', () => {
         const contact = DEFAULT_SENSOR_ARRAY.channels.find(c => c.channelId === 'contact');
         expect(contact).toBeDefined();
-        expect(contact!.sensorType).toBe('piezo_contact');
-        expect(contact!.frequencyRange[0]).toBe(20);
-        expect(contact!.frequencyRange[1]).toBe(100000);
+        expect(contact.sensorType).toBe('piezo_contact');
+        expect(contact.frequencyRange[0]).toBe(20);
+        expect(contact.frequencyRange[1]).toBe(100000);
       });
 
       it('should have reference channel for ambient noise', () => {
         const ambient = DEFAULT_SENSOR_ARRAY.channels.find(c => c.channelId === 'ambient');
         expect(ambient).toBeDefined();
-        expect(ambient!.sensorType).toBe('reference');
+        expect(ambient.sensorType).toBe('reference');
       });
 
       it('should use 24-bit ADC for high-quality audio', () => {
@@ -224,7 +219,7 @@ describe('AcousticTypes', () => {
           contrast: [0.5, 0.6, 0.7, 0.8, 0.9, 1.0],
           zeroCrossingRate: 0.15,
           rmsEnergy: 0.05,
-          mfcc: new Array(13).fill(0).map((_, i) => Math.random() * 10 - 5),
+          mfcc: new Array(13).fill(0).map(() => Math.random() * 10 - 5),
         };
         expect(features.centroid).toBeGreaterThan(0);
         expect(features.flatness).toBeGreaterThanOrEqual(0);

@@ -6,17 +6,17 @@ import {
   VisionBeliefAdapter,
   createVisionBeliefAdapter,
   DEFAULT_ADAPTER_CONFIG,
-  IVisionAdapterConfig,
+  type IVisionAdapterConfig,
 } from './VisionBeliefAdapter';
 import {
-  ITrichoscopyAnalysis,
-  IImageEmbedding,
-  IMorphometryResult,
-  IDensityResult,
-  ICycleAnalysis,
-  ISegmentationResult,
+  type ITrichoscopyAnalysis,
+  type IImageEmbedding,
+  type IMorphometryResult,
+  type IDensityResult,
+  type ICycleAnalysis,
+  type ISegmentationResult,
 } from './VisionTypes';
-import { IPatientContext, FollicleState } from '../trichology/domain/TrichologyStates';
+import { type IPatientContext, FollicleState } from '../trichology/domain/TrichologyStates';
 
 describe('VisionBeliefAdapter', () => {
   let adapter: VisionBeliefAdapter;
@@ -151,11 +151,11 @@ describe('VisionBeliefAdapter', () => {
       const observation = adapter.toObservation(analysis, context);
 
       expect(observation).not.toBeNull();
-      expect(observation!.bulbWidth).toBeGreaterThan(0);
-      expect(observation!.shaftThickness).toBeGreaterThan(0);
-      expect(observation!.density).toBeGreaterThan(0);
-      expect(observation!.zone).toBeDefined();
-      expect(observation!.confidence).toBeGreaterThan(0);
+      expect(observation.bulbWidth).toBeGreaterThan(0);
+      expect(observation.shaftThickness).toBeGreaterThan(0);
+      expect(observation.density).toBeGreaterThan(0);
+      expect(observation.zone).toBeDefined();
+      expect(observation.confidence).toBeGreaterThan(0);
     });
 
     it('should return null for low confidence analysis', () => {
@@ -175,8 +175,8 @@ describe('VisionBeliefAdapter', () => {
       const obs1 = adapter.toObservation(temporalAnalysis, createMockContext());
       const obs2 = adapter.toObservation(parietalAnalysis, createMockContext());
 
-      expect(obs1!.zone).toBe('temporal');
-      expect(obs2!.zone).toBe('parietal');
+      expect(obs1.zone).toBe('temporal');
+      expect(obs2.zone).toBe('parietal');
     });
 
     it('should include cycle analysis ratios', () => {
@@ -187,16 +187,16 @@ describe('VisionBeliefAdapter', () => {
 
       const observation = adapter.toObservation(analysis, createMockContext());
 
-      expect(observation!.anagenTelogenRatio).toBe(0.85);
-      expect(observation!.vellusTerminalRatio).toBe(0.2);
+      expect(observation.anagenTelogenRatio).toBe(0.85);
+      expect(observation.vellusTerminalRatio).toBe(0.2);
     });
 
     it('should include density metrics', () => {
       const analysis = createMockAnalysis({ density: 200 });
       const observation = adapter.toObservation(analysis, createMockContext());
 
-      expect(observation!.density).toBe(200);
-      expect(observation!.follicularUnits).toBeGreaterThan(0);
+      expect(observation.density).toBe(200);
+      expect(observation.follicularUnits).toBeGreaterThan(0);
     });
   });
 
@@ -574,21 +574,21 @@ describe('VisionBeliefAdapter', () => {
       const analysis = createMockAnalysis({ zone: 'unknown' });
       const observation = adapter.toObservation(analysis, createMockContext());
 
-      expect(observation!.zone).toBe('parietal');
+      expect(observation.zone).toBe('parietal');
     });
 
     it('should handle frontal zone', () => {
       const analysis = createMockAnalysis({ zone: 'frontal' });
       const observation = adapter.toObservation(analysis, createMockContext());
 
-      expect(observation!.zone).toBe('frontal');
+      expect(observation.zone).toBe('frontal');
     });
 
     it('should handle occipital zone', () => {
       const analysis = createMockAnalysis({ zone: 'occipital' });
       const observation = adapter.toObservation(analysis, createMockContext());
 
-      expect(observation!.zone).toBe('occipital');
+      expect(observation.zone).toBe('occipital');
     });
 
     it('should map various diagnosis strings to states', () => {

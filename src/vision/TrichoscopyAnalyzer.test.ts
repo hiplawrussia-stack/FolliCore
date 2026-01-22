@@ -5,21 +5,20 @@
 import {
   TrichoscopyAnalyzer,
   createMockAnalyzer,
-  IFeatureExtractor,
-  ISegmentationModel,
-  IMorphometryHead,
-  IDensityHead,
-  ICycleHead,
+  type IFeatureExtractor,
+  type ISegmentationModel,
+  type IMorphometryHead,
+  type IDensityHead,
+  type ICycleHead,
 } from './TrichoscopyAnalyzer';
 import {
-  ITrichoscopyImage,
-  IImageEmbedding,
-  ISegmentationResult,
-  IMorphometryResult,
-  IDensityResult,
-  ICycleAnalysis,
+  type ITrichoscopyImage,
+  type IImageEmbedding,
+  type ISegmentationResult,
+  type IMorphometryResult,
+  type IDensityResult,
+  type ICycleAnalysis,
   VisionError,
-  VisionErrorCode,
   DEFAULT_VISION_CONFIG,
 } from './VisionTypes';
 

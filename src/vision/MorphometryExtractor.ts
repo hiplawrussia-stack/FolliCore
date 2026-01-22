@@ -8,15 +8,15 @@
  */
 
 import {
-  IImageEmbedding,
-  ISegmentationResult,
-  IMorphometryResult,
-  IDensityResult,
-  ICycleAnalysis,
+  type IImageEmbedding,
+  type ISegmentationResult,
+  type IMorphometryResult,
+  type IDensityResult,
+  type ICycleAnalysis,
   VisionError,
   VisionErrorCode,
 } from './VisionTypes';
-import { IMorphometryHead, IDensityHead, ICycleHead } from './TrichoscopyAnalyzer';
+import { type IMorphometryHead, type IDensityHead, type ICycleHead } from './TrichoscopyAnalyzer';
 
 /**
  * Morphometric measurement from a single follicle
@@ -62,7 +62,6 @@ export class MorphometryExtractor implements IMorphometryHead, IDensityHead, ICy
   private readonly bulbWidthRange = { min: 60, max: 80 };  // micrometers
   private readonly shaftThicknessRange = { min: 25, max: 40 };  // micrometers
 
-  constructor() {}
 
   /**
    * Load model weights
@@ -199,7 +198,7 @@ export class MorphometryExtractor implements IMorphometryHead, IDensityHead, ICy
     const vellusCount = classifications.filter(c => c.type === 'vellus').length;
     const terminalCount = classifications.filter(c => c.type === 'terminal').length;
 
-    const totalHairs = classifications.length || 1;  // Avoid division by zero
+    const _totalHairs = classifications.length || 1;  // Avoid division by zero
 
     // Calculate ratios
     const anagenTelogenRatio = (anagenCount + catagenCount) / Math.max(telogenCount, 1);
@@ -230,7 +229,7 @@ export class MorphometryExtractor implements IMorphometryHead, IDensityHead, ICy
 
   private measureFollicles(
     segmentation: ISegmentationResult,
-    calibration: { pixelsPerMicrometer: number }
+    _calibration: { pixelsPerMicrometer: number }
   ): IFollicleMeasurement[] {
     const measurements: IFollicleMeasurement[] = [];
 
@@ -326,15 +325,15 @@ export class MorphometryExtractor implements IMorphometryHead, IDensityHead, ICy
       let phase: 'anagen' | 'catagen' | 'telogen';
 
       // Typical healthy distribution: 85% anagen, 2% catagen, 13% telogen
-      if (rand < 0.85) phase = 'anagen';
-      else if (rand < 0.87) phase = 'catagen';
-      else phase = 'telogen';
+      if (rand < 0.85) {phase = 'anagen';}
+      else if (rand < 0.87) {phase = 'catagen';}
+      else {phase = 'telogen';}
 
       // Typical healthy distribution: 80% terminal, 15% vellus, 5% intermediate
       const typeRand = Math.random();
-      if (typeRand < 0.80) type = 'terminal';
-      else if (typeRand < 0.95) type = 'vellus';
-      else type = 'intermediate';
+      if (typeRand < 0.80) {type = 'terminal';}
+      else if (typeRand < 0.95) {type = 'vellus';}
+      else {type = 'intermediate';}
 
       classifications.push({
         type,
@@ -367,12 +366,12 @@ export class MorphometryExtractor implements IMorphometryHead, IDensityHead, ICy
   }
 
   private mean(values: number[]): number {
-    if (values.length === 0) return 0;
+    if (values.length === 0) {return 0;}
     return values.reduce((a, b) => a + b, 0) / values.length;
   }
 
   private std(values: number[]): number {
-    if (values.length < 2) return 0;
+    if (values.length < 2) {return 0;}
     const m = this.mean(values);
     const variance = values.reduce((acc, v) => acc + (v - m) ** 2, 0) / (values.length - 1);
     return Math.sqrt(variance);

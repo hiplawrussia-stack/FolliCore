@@ -51,16 +51,9 @@ export interface IFollicleObservation {
   confidence: number;          // 0-1
 }
 
-/**
- * Acoustic observation (Phase 3)
- * Based on arXiv:2506.14148
- */
-export interface IAcousticObservation {
-  porosity: number;            // 0-1 (lower is healthier)
-  hydration: number;           // 0-1 (higher is healthier)
-  structureClass: 'healthy' | 'weathered' | 'damaged';
-  confidence: number;
-}
+// IAcousticObservation moved to ../acoustic/AcousticTypes.ts
+// Re-export for backwards compatibility
+export type { IAcousticObservation } from '../../acoustic/AcousticTypes';
 
 /**
  * Patient context for personalization
@@ -314,9 +307,9 @@ export const PGMU_NORMS = {
  * Get age group key from age
  */
 export function getAgeGroup(age: number): '21-35' | '36-59' | '61-74' | '75-86' {
-  if (age <= 35) return '21-35';
-  if (age <= 59) return '36-59';
-  if (age <= 74) return '61-74';
+  if (age <= 35) {return '21-35';}
+  if (age <= 59) {return '36-59';}
+  if (age <= 74) {return '61-74';}
   return '75-86';
 }
 

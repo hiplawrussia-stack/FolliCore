@@ -7,10 +7,10 @@
  * This is the critical integration point between CV and decision engine.
  */
 
-import { ITrichoscopyAnalysis, ISimilarCase } from './VisionTypes';
+import { type ITrichoscopyAnalysis, type ISimilarCase } from './VisionTypes';
 import {
-  IFollicleObservation,
-  IPatientContext,
+  type IFollicleObservation,
+  type IPatientContext,
   FollicleState,
   PGMU_NORMS,
   getAgeGroup,
@@ -293,9 +293,9 @@ export class VisionBeliefAdapter {
     risk += (1 - normalizedDensity) * 0.2;
 
     // Age contribution (0-0.15)
-    if (context.age < 30) risk += 0.05;
-    else if (context.age < 50) risk += 0.1;
-    else risk += 0.15;
+    if (context.age < 30) {risk += 0.05;}
+    else if (context.age < 50) {risk += 0.1;}
+    else {risk += 0.15;}
 
     // Genetic risk (0-0.15)
     if (context.geneticRisk) {
@@ -323,9 +323,9 @@ export class VisionBeliefAdapter {
     potential += Math.max(emptyFURatio * 0.2, 0);
 
     // Young age increases potential
-    if (context.age < 30) potential += 0.15;
-    else if (context.age < 40) potential += 0.1;
-    else if (context.age < 50) potential += 0.05;
+    if (context.age < 30) {potential += 0.15;}
+    else if (context.age < 40) {potential += 0.1;}
+    else if (context.age < 50) {potential += 0.05;}
 
     // Good anagen ratio increases potential
     potential += analysis.cycleAnalysis.anagenTelogenRatio * 0.15;
@@ -409,7 +409,7 @@ export class VisionBeliefAdapter {
   ): void {
     // Weight similar cases by similarity score
     const totalSimilarity = similarCases.reduce((sum, c) => sum + c.similarity, 0);
-    if (totalSimilarity === 0) return;
+    if (totalSimilarity === 0) {return;}
 
     const diagnosisCounts = new Map<string, number>();
     similarCases.forEach(c => {
@@ -452,7 +452,7 @@ export class VisionBeliefAdapter {
 
   private normalizeScores(scores: Map<FollicleState, number>): Map<FollicleState, number> {
     const total = Array.from(scores.values()).reduce((sum, s) => sum + s, 0);
-    if (total === 0) return scores;
+    if (total === 0) {return scores;}
 
     const normalized = new Map<FollicleState, number>();
     scores.forEach((score, state) => {

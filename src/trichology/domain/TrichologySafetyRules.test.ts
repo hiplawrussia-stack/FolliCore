@@ -4,8 +4,7 @@
 
 import {
   TRICHOLOGY_SAFETY_RULES,
-  SafetyCheckContext,
-  SafetyCheckResult,
+  type SafetyCheckContext,
   runSafetyChecks,
   isActionSafe,
   getSafeAlternative,
@@ -14,7 +13,7 @@ import {
 import {
   TrichologyAction,
   FollicleState,
-  IPatientContext,
+  type IPatientContext,
 } from './TrichologyStates';
 
 describe('TrichologySafetyRules', () => {
@@ -81,7 +80,7 @@ describe('TrichologySafetyRules', () => {
       expect(rule).toBeDefined();
 
       const ctx = createSafetyContext(TrichologyAction.MINOXIDIL_5);
-      const result = rule!.check(ctx);
+      const result = rule.check(ctx);
 
       expect(result.passed).toBe(true);
       expect(result.severity).toBe('info');
@@ -94,7 +93,7 @@ describe('TrichologySafetyRules', () => {
       expect(rule).toBeDefined();
 
       const ctx = createSafetyContext(TrichologyAction.PRP_THERAPY);
-      const result = rule!.check(ctx);
+      const result = rule.check(ctx);
 
       expect(result.passed).toBe(true);
       expect(result.severity).toBe('info');
@@ -109,7 +108,7 @@ describe('TrichologySafetyRules', () => {
       );
 
       const rule = TRICHOLOGY_SAFETY_RULES.find(r => r.id === 'NEVER_FINASTERIDE_FEMALE');
-      const result = rule!.check(ctx);
+      const result = rule.check(ctx);
 
       expect(result.passed).toBe(false);
       expect(result.severity).toBe('critical');
@@ -123,7 +122,7 @@ describe('TrichologySafetyRules', () => {
       );
 
       const rule = TRICHOLOGY_SAFETY_RULES.find(r => r.id === 'NEVER_FINASTERIDE_FEMALE');
-      const result = rule!.check(ctx);
+      const result = rule.check(ctx);
 
       expect(result.passed).toBe(true);
     });
@@ -135,7 +134,7 @@ describe('TrichologySafetyRules', () => {
       );
 
       const rule = TRICHOLOGY_SAFETY_RULES.find(r => r.id === 'NEVER_FINASTERIDE_FEMALE');
-      const result = rule!.check(ctx);
+      const result = rule.check(ctx);
 
       expect(result.passed).toBe(true);
     });
@@ -147,7 +146,7 @@ describe('TrichologySafetyRules', () => {
       );
 
       const rule = TRICHOLOGY_SAFETY_RULES.find(r => r.id === 'NEVER_FINASTERIDE_FEMALE');
-      const result = rule!.check(ctx);
+      const result = rule.check(ctx);
 
       expect(result.passed).toBe(true);
     });
@@ -162,7 +161,7 @@ describe('TrichologySafetyRules', () => {
       );
 
       const rule = TRICHOLOGY_SAFETY_RULES.find(r => r.id === 'NEVER_IGNORE_INFLAMMATION');
-      const result = rule!.check(ctx);
+      const result = rule.check(ctx);
 
       expect(result.passed).toBe(false);
       expect(result.severity).toBe('critical');
@@ -177,7 +176,7 @@ describe('TrichologySafetyRules', () => {
       );
 
       const rule = TRICHOLOGY_SAFETY_RULES.find(r => r.id === 'NEVER_IGNORE_INFLAMMATION');
-      const result = rule!.check(ctx);
+      const result = rule.check(ctx);
 
       expect(result.passed).toBe(false);
     });
@@ -190,7 +189,7 @@ describe('TrichologySafetyRules', () => {
       );
 
       const rule = TRICHOLOGY_SAFETY_RULES.find(r => r.id === 'NEVER_IGNORE_INFLAMMATION');
-      const result = rule!.check(ctx);
+      const result = rule.check(ctx);
 
       expect(result.passed).toBe(true);
     });
@@ -203,7 +202,7 @@ describe('TrichologySafetyRules', () => {
       );
 
       const rule = TRICHOLOGY_SAFETY_RULES.find(r => r.id === 'NEVER_IGNORE_INFLAMMATION');
-      const result = rule!.check(ctx);
+      const result = rule.check(ctx);
 
       expect(result.passed).toBe(true);
     });
@@ -217,7 +216,7 @@ describe('TrichologySafetyRules', () => {
       );
 
       const rule = TRICHOLOGY_SAFETY_RULES.find(r => r.id === 'ALWAYS_CHECK_CONTRAINDICATIONS');
-      const result = rule!.check(ctx);
+      const result = rule.check(ctx);
 
       expect(result.passed).toBe(false);
       expect(result.severity).toBe('critical');
@@ -230,7 +229,7 @@ describe('TrichologySafetyRules', () => {
       );
 
       const rule = TRICHOLOGY_SAFETY_RULES.find(r => r.id === 'ALWAYS_CHECK_CONTRAINDICATIONS');
-      const result = rule!.check(ctx);
+      const result = rule.check(ctx);
 
       expect(result.passed).toBe(false);
       expect(result.message).toContain('liver_disease');
@@ -243,7 +242,7 @@ describe('TrichologySafetyRules', () => {
       );
 
       const rule = TRICHOLOGY_SAFETY_RULES.find(r => r.id === 'ALWAYS_CHECK_CONTRAINDICATIONS');
-      const result = rule!.check(ctx);
+      const result = rule.check(ctx);
 
       expect(result.passed).toBe(false);
     });
@@ -255,7 +254,7 @@ describe('TrichologySafetyRules', () => {
       );
 
       const rule = TRICHOLOGY_SAFETY_RULES.find(r => r.id === 'ALWAYS_CHECK_CONTRAINDICATIONS');
-      const result = rule!.check(ctx);
+      const result = rule.check(ctx);
 
       expect(result.passed).toBe(false);
     });
@@ -267,7 +266,7 @@ describe('TrichologySafetyRules', () => {
       );
 
       const rule = TRICHOLOGY_SAFETY_RULES.find(r => r.id === 'ALWAYS_CHECK_CONTRAINDICATIONS');
-      const result = rule!.check(ctx);
+      const result = rule.check(ctx);
 
       expect(result.passed).toBe(true);
     });
@@ -279,7 +278,7 @@ describe('TrichologySafetyRules', () => {
       );
 
       const rule = TRICHOLOGY_SAFETY_RULES.find(r => r.id === 'ALWAYS_CHECK_CONTRAINDICATIONS');
-      const result = rule!.check(ctx);
+      const result = rule.check(ctx);
 
       expect(result.passed).toBe(true);
     });
@@ -297,7 +296,7 @@ describe('TrichologySafetyRules', () => {
       );
 
       const rule = TRICHOLOGY_SAFETY_RULES.find(r => r.id === 'ALWAYS_RECOMMEND_SPECIALIST_FOR_SEVERE');
-      const result = rule!.check(ctx);
+      const result = rule.check(ctx);
 
       expect(result.passed).toBe(false);
       expect(result.severity).toBe('warning');
@@ -315,7 +314,7 @@ describe('TrichologySafetyRules', () => {
       );
 
       const rule = TRICHOLOGY_SAFETY_RULES.find(r => r.id === 'ALWAYS_RECOMMEND_SPECIALIST_FOR_SEVERE');
-      const result = rule!.check(ctx);
+      const result = rule.check(ctx);
 
       expect(result.passed).toBe(true);
     });
@@ -331,7 +330,7 @@ describe('TrichologySafetyRules', () => {
       );
 
       const rule = TRICHOLOGY_SAFETY_RULES.find(r => r.id === 'ALWAYS_RECOMMEND_SPECIALIST_FOR_SEVERE');
-      const result = rule!.check(ctx);
+      const result = rule.check(ctx);
 
       expect(result.passed).toBe(true);
     });
@@ -350,7 +349,7 @@ describe('TrichologySafetyRules', () => {
       );
 
       const rule = TRICHOLOGY_SAFETY_RULES.find(r => r.id === 'ESCALATE_RAPID_PROGRESSION');
-      const result = rule!.check(ctx);
+      const result = rule.check(ctx);
 
       expect(result.passed).toBe(false);
       expect(result.severity).toBe('warning');
@@ -369,7 +368,7 @@ describe('TrichologySafetyRules', () => {
       );
 
       const rule = TRICHOLOGY_SAFETY_RULES.find(r => r.id === 'ESCALATE_RAPID_PROGRESSION');
-      const result = rule!.check(ctx);
+      const result = rule.check(ctx);
 
       expect(result.passed).toBe(true);
     });
@@ -383,7 +382,7 @@ describe('TrichologySafetyRules', () => {
       );
 
       const rule = TRICHOLOGY_SAFETY_RULES.find(r => r.id === 'ESCALATE_RAPID_PROGRESSION');
-      const result = rule!.check(ctx);
+      const result = rule.check(ctx);
 
       expect(result.passed).toBe(true);
     });
@@ -392,7 +391,7 @@ describe('TrichologySafetyRules', () => {
       const ctx = createSafetyContext(TrichologyAction.MINOXIDIL_5);
 
       const rule = TRICHOLOGY_SAFETY_RULES.find(r => r.id === 'ESCALATE_RAPID_PROGRESSION');
-      const result = rule!.check(ctx);
+      const result = rule.check(ctx);
 
       expect(result.passed).toBe(true);
     });
@@ -409,7 +408,7 @@ describe('TrichologySafetyRules', () => {
       );
 
       const rule = TRICHOLOGY_SAFETY_RULES.find(r => r.id === 'ESCALATE_RAPID_PROGRESSION');
-      const result = rule!.check(ctx);
+      const result = rule.check(ctx);
 
       expect(result.passed).toBe(true);
     });
@@ -430,7 +429,7 @@ describe('TrichologySafetyRules', () => {
       };
 
       const rule = TRICHOLOGY_SAFETY_RULES.find(r => r.id === 'WARN_HIGH_UNCERTAINTY');
-      const result = rule!.check(ctx);
+      const result = rule.check(ctx);
 
       expect(result.passed).toBe(true); // Warning, not blocking
       expect(result.severity).toBe('warning');
@@ -451,7 +450,7 @@ describe('TrichologySafetyRules', () => {
       };
 
       const rule = TRICHOLOGY_SAFETY_RULES.find(r => r.id === 'WARN_HIGH_UNCERTAINTY');
-      const result = rule!.check(ctx);
+      const result = rule.check(ctx);
 
       expect(result.severity).toBe('info');
     });
@@ -465,7 +464,7 @@ describe('TrichologySafetyRules', () => {
       );
 
       const rule = TRICHOLOGY_SAFETY_RULES.find(r => r.id === 'WARN_YOUNG_PATIENT_AGGRESSIVE');
-      const result = rule!.check(ctx);
+      const result = rule.check(ctx);
 
       expect(result.passed).toBe(true); // Warning, not blocking
       expect(result.severity).toBe('warning');
@@ -479,7 +478,7 @@ describe('TrichologySafetyRules', () => {
       );
 
       const rule = TRICHOLOGY_SAFETY_RULES.find(r => r.id === 'WARN_YOUNG_PATIENT_AGGRESSIVE');
-      const result = rule!.check(ctx);
+      const result = rule.check(ctx);
 
       expect(result.severity).toBe('warning');
     });
@@ -491,7 +490,7 @@ describe('TrichologySafetyRules', () => {
       );
 
       const rule = TRICHOLOGY_SAFETY_RULES.find(r => r.id === 'WARN_YOUNG_PATIENT_AGGRESSIVE');
-      const result = rule!.check(ctx);
+      const result = rule.check(ctx);
 
       expect(result.severity).toBe('info');
     });
@@ -503,7 +502,7 @@ describe('TrichologySafetyRules', () => {
       );
 
       const rule = TRICHOLOGY_SAFETY_RULES.find(r => r.id === 'WARN_YOUNG_PATIENT_AGGRESSIVE');
-      const result = rule!.check(ctx);
+      const result = rule.check(ctx);
 
       expect(result.severity).toBe('info');
     });

@@ -5,9 +5,7 @@
 import {
   FollicleState,
   TrichologyAction,
-  IFollicleObservation,
-  IPatientContext,
-  IActionMetadata,
+  type IFollicleObservation,
   DEFAULT_ACTION_METADATA,
   PGMU_NORMS,
   getAgeGroup,
@@ -211,9 +209,9 @@ describe('TrichologyStates', () => {
         m => m.action === TrichologyAction.MINOXIDIL_5
       );
       expect(minoxidil5).toBeDefined();
-      expect(minoxidil5!.priorSuccessRate).toBe(4);
-      expect(minoxidil5!.priorFailureRate).toBe(6);
-      expect(minoxidil5!.contraindications).toContain('hypotension');
+      expect(minoxidil5.priorSuccessRate).toBe(4);
+      expect(minoxidil5.priorFailureRate).toBe(6);
+      expect(minoxidil5.contraindications).toContain('hypotension');
     });
 
     it('should have finasteride as male-specific', () => {
@@ -221,7 +219,7 @@ describe('TrichologyStates', () => {
         m => m.action === TrichologyAction.FINASTERIDE
       );
       expect(finasteride).toBeDefined();
-      expect(finasteride!.genderSpecific).toBe('male');
+      expect(finasteride.genderSpecific).toBe('male');
     });
 
     it('should have WAIT_AND_OBSERVE applicable to all states', () => {
@@ -229,7 +227,7 @@ describe('TrichologyStates', () => {
         m => m.action === TrichologyAction.WAIT_AND_OBSERVE
       );
       expect(waitObserve).toBeDefined();
-      expect(waitObserve!.applicableStates.length).toBe(10);
+      expect(waitObserve.applicableStates.length).toBe(10);
     });
 
     it('should have varying cost levels', () => {
@@ -244,8 +242,8 @@ describe('TrichologyStates', () => {
         m => m.action === TrichologyAction.PRP_THERAPY
       );
       expect(prp).toBeDefined();
-      expect(prp!.contraindications).toContain('blood_disorders');
-      expect(prp!.contraindications).toContain('anticoagulants');
+      expect(prp.contraindications).toContain('blood_disorders');
+      expect(prp.contraindications).toContain('anticoagulants');
     });
 
     it('should have appropriate time to effect values', () => {
@@ -255,7 +253,7 @@ describe('TrichologyStates', () => {
       const finasteride = DEFAULT_ACTION_METADATA.find(
         m => m.action === TrichologyAction.FINASTERIDE
       );
-      expect(stressManagement!.timeToEffect).toBeLessThan(finasteride!.timeToEffect);
+      expect(stressManagement.timeToEffect).toBeLessThan(finasteride.timeToEffect);
     });
   });
 });

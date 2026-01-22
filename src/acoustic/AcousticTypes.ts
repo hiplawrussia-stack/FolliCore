@@ -10,7 +10,7 @@
  * - Wearable mechano-acoustic sensors (Nanoscale 2025)
  */
 
-import { ScalpZone } from '../vision/VisionTypes';
+import { type ScalpZone } from '../vision/VisionTypes';
 
 // ============================================================================
 // SENSOR TYPES
