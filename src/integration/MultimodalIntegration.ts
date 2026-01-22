@@ -53,6 +53,7 @@ import {
   type IFollicleObservation,
   type ITrichologyBeliefState,
   type FollicleState,
+  type TrichologyAction,
 } from '../trichology/domain/TrichologyStates';
 
 import { type ScalpZone } from '../vision/VisionTypes';
@@ -633,10 +634,10 @@ export class MultimodalIntegration {
    */
   recordOutcome(
     patientId: string,
-    action: string,
+    action: TrichologyAction,
     outcome: 'positive' | 'neutral' | 'negative'
   ): void {
-    this.engine.updateOutcome(patientId, action as any, outcome);
+    this.engine.updateOutcome(patientId, action, outcome);
   }
 
   /**

@@ -38,6 +38,7 @@ import {
   type IFollicleObservation,
   type ITrichologyBeliefState,
   type IAcousticObservation,
+  type TrichologyAction,
 } from '../trichology/domain/TrichologyStates';
 
 /**
@@ -365,10 +366,10 @@ export class VisionEngineIntegration {
    */
   recordOutcome(
     patientId: string,
-    action: string,
+    action: TrichologyAction,
     outcome: 'positive' | 'neutral' | 'negative'
   ): void {
-    this.engine.updateOutcome(patientId, action as any, outcome);
+    this.engine.updateOutcome(patientId, action, outcome);
   }
 
   /**

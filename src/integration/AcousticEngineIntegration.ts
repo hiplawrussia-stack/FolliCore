@@ -24,6 +24,7 @@ import {
   type IAcousticAnalysisResult,
   type IAcousticObservation,
   type IAcousticConfig,
+  type IAcousticSimilarCase,
   toAcousticObservation,
 } from '../acoustic/AcousticTypes';
 
@@ -38,6 +39,7 @@ import {
   type IPatientContext,
   type IFollicleObservation,
   type ITrichologyBeliefState,
+  type TrichologyAction,
 } from '../trichology/domain/TrichologyStates';
 
 import { type ScalpZone } from '../vision/VisionTypes';
@@ -442,10 +444,10 @@ export class AcousticEngineIntegration {
    */
   recordOutcome(
     patientId: string,
-    action: string,
+    action: TrichologyAction,
     outcome: 'positive' | 'neutral' | 'negative'
   ): void {
-    this.engine.updateOutcome(patientId, action as any, outcome);
+    this.engine.updateOutcome(patientId, action, outcome);
   }
 
   /**
@@ -458,7 +460,7 @@ export class AcousticEngineIntegration {
   /**
    * Find similar cases in acoustic database
    */
-  async findSimilarCases(analysis: IAcousticAnalysisResult): Promise<any[]> {
+  async findSimilarCases(analysis: IAcousticAnalysisResult): Promise<IAcousticSimilarCase[]> {
     return this.analyzer.findSimilar(analysis.embedding);
   }
 

@@ -17,6 +17,7 @@ import {
   type IPatientContext,
   type ITrichologyBeliefState,
   type IActionMetadata,
+  type ITreatmentRecord,
   DEFAULT_ACTION_METADATA,
   estimateFollicleAge,
   PGMU_NORMS,
@@ -116,7 +117,7 @@ export class FolliCoreEngine {
   private config: IFolliCoreConfig;
   private patientBeliefs = new Map<string, ITrichologyBeliefState>();
   private thompsonArms = new Map<string, IThompsonArm[]>();
-  private treatmentHistory = new Map<string, any[]>();
+  private treatmentHistory = new Map<string, ITreatmentRecord[]>();
 
   constructor(config: Partial<IFolliCoreConfig> = {}) {
     this.config = { ...DEFAULT_CONFIG, ...config };

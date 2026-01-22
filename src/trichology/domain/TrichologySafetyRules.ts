@@ -5,7 +5,7 @@
  * Replaces Constitutional AI with domain-specific rules.
  */
 
-import { TrichologyAction, FollicleState, type IPatientContext } from './TrichologyStates';
+import { TrichologyAction, FollicleState, type IPatientContext, type IFollicleObservation } from './TrichologyStates';
 
 /**
  * Safety rule types
@@ -23,7 +23,7 @@ export interface SafetyCheckContext {
   proposedAction: TrichologyAction;
   patientContext: IPatientContext;
   currentBeliefState: Map<FollicleState, number>;
-  recentObservations: any[];
+  recentObservations: IFollicleObservation[];
 }
 
 export interface SafetyCheckResult {
