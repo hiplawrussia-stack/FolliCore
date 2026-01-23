@@ -11,7 +11,11 @@
     "test:watch": "jest --watch",
     "lint": "eslint src",
     "lint:fix": "eslint src --fix",
-    "lint:ci": "eslint src --max-warnings 55"
+    "lint:ci": "eslint src --max-warnings 55",
+    "proto:compile": "python ml/scripts/compile_protos.py",
+    "ml:start": "docker-compose -f ml/docker-compose.yml up",
+    "ml:start:gpu": "docker-compose -f ml/docker-compose.yml --profile gpu up",
+    "ml:build": "docker-compose -f ml/docker-compose.yml build"
   },
   "keywords": [
     "trichology",
@@ -21,7 +25,9 @@
     "ai-diagnostics",
     "computer-vision",
     "acoustic-analysis",
-    "predictive-medicine"
+    "predictive-medicine",
+    "grpc",
+    "ml-inference"
   ],
   "author": {
     "name": "БФ Другой путь",
@@ -29,10 +35,16 @@
     "url": "https://awfond.ru"
   },
   "license": "MIT",
+  "dependencies": {
+    "@grpc/grpc-js": "^1.9.0",
+    "@grpc/proto-loader": "^0.7.0",
+    "uuid": "^9.0.0"
+  },
   "devDependencies": {
     "@eslint/js": "^9.39.2",
     "@types/jest": "^29.5.0",
     "@types/node": "^22.0.0",
+    "@types/uuid": "^9.0.0",
     "eslint": "^9.39.2",
     "eslint-plugin-n": "^17.23.2",
     "eslint-plugin-security": "^3.0.1",

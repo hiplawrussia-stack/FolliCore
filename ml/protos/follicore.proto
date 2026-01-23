@@ -1,0 +1,377 @@
+/**
+ * FolliCore ML API - Core Protocol Definitions
+ *
+ * Version: 1.0.0
+ *
+ * This file defines the core types and common structures used across
+ * all FolliCore ML services.
+ *
+ * IMPORTANT: Schema Evolution Rules (per CLAUDE.md and Protocol Buffers best practices):
+ * - NEVER reuse field numbers
+ * - Use 'reserved' for deleted fields
+ * - Add new fields at end with new numbers
+ * - Maintain backward compatibility
+ *
+ * References:
+ * - Protocol Buffers Style Guide: https://protobuf.dev/programming-guides/style/
+ * - gRPC Best Practices: https://grpc.io/docs/guides/performance/
+ *
+ * IEC 62304 Compliance: This API serves as SOUP interface layer.
+ * All medical recommendations require human oversight per CLAUDE.md.
+ */
+
+syntax = "proto3";
+
+package follicore.v1;
+
+option java_multiple_files = true;
+option java_package = "com.follicore.ml.v1";
+option go_package = "github.com/follicore/ml/v1;follicoreml";
+
+// ============================================================================
+// COMMON TYPES
+// ============================================================================
+
+/**
+ * Unique identifier for requests/responses.
+ * Supports distributed tracing and audit trail (HIPAA compliance).
+ */
+message RequestMetadata {
+  // Unique request ID (UUID v4)
+  string request_id = 1;
+
+  // Correlation ID for distributed tracing
+  string correlation_id = 2;
+
+  // Session ID for user session tracking
+  string session_id = 3;
+
+  // Patient ID (pseudonymized, HIPAA/GDPR compliant)
+  string patient_id = 4;
+
+  // Timestamp (RFC 3339)
+  string timestamp = 5;
+
+  // Source system identifier
+  string source = 6;
+
+  // Model version requested (optional, uses latest if empty)
+  string model_version = 7;
+}
+
+/**
+ * Response metadata with timing and model information.
+ */
+message ResponseMetadata {
+  // Original request ID
+  string request_id = 1;
+
+  // Processing time in milliseconds
+  int64 processing_time_ms = 2;
+
+  // Model version used
+  string model_version = 3;
+
+  // Model name
+  string model_name = 4;
+
+  // Server instance ID
+  string server_id = 5;
+
+  // Response timestamp (RFC 3339)
+  string timestamp = 6;
+}
+
+/**
+ * Confidence score with calibration information.
+ * Per CLAUDE.md Section 6.1: Calibration of model confidence.
+ */
+message ConfidenceScore {
+  // Raw confidence value (0.0 - 1.0)
+  float value = 1;
+
+  // Calibrated confidence (if available)
+  float calibrated_value = 2;
+
+  // Confidence level category
+  ConfidenceLevel level = 3;
+
+  // Factors contributing to uncertainty
+  repeated string uncertainty_factors = 4;
+}
+
+enum ConfidenceLevel {
+  CONFIDENCE_LEVEL_UNSPECIFIED = 0;
+  CONFIDENCE_LEVEL_LOW = 1;      // < 0.5
+  CONFIDENCE_LEVEL_MEDIUM = 2;   // 0.5 - 0.7
+  CONFIDENCE_LEVEL_HIGH = 3;     // 0.7 - 0.9
+  CONFIDENCE_LEVEL_VERY_HIGH = 4; // > 0.9
+}
+
+/**
+ * Standard error response.
+ */
+message Error {
+  // Error code (application-specific)
+  string code = 1;
+
+  // Human-readable message
+  string message = 2;
+
+  // Detailed error information
+  string details = 3;
+
+  // Error severity
+  ErrorSeverity severity = 4;
+
+  // Suggested actions
+  repeated string suggested_actions = 5;
+}
+
+enum ErrorSeverity {
+  ERROR_SEVERITY_UNSPECIFIED = 0;
+  ERROR_SEVERITY_WARNING = 1;
+  ERROR_SEVERITY_ERROR = 2;
+  ERROR_SEVERITY_CRITICAL = 3;
+}
+
+// ============================================================================
+// SCALP ZONES (PGMU Methodology)
+// ============================================================================
+
+/**
+ * Scalp zones based on PGMU (Pirogov) morphometry methodology.
+ * References: PGMU Norms, Hamilton-Norwood scale.
+ */
+enum ScalpZone {
+  SCALP_ZONE_UNSPECIFIED = 0;
+  SCALP_ZONE_FRONTAL = 1;
+  SCALP_ZONE_TEMPORAL_LEFT = 2;
+  SCALP_ZONE_TEMPORAL_RIGHT = 3;
+  SCALP_ZONE_PARIETAL = 4;
+  SCALP_ZONE_OCCIPITAL = 5;
+  SCALP_ZONE_VERTEX = 6;
+}
+
+// ============================================================================
+// GENDER AND AGE (for PGMU norm lookup)
+// ============================================================================
+
+enum BiologicalSex {
+  BIOLOGICAL_SEX_UNSPECIFIED = 0;
+  BIOLOGICAL_SEX_MALE = 1;
+  BIOLOGICAL_SEX_FEMALE = 2;
+}
+
+/**
+ * Patient context for personalized analysis.
+ * Used for PGMU norm selection and safety rule evaluation.
+ */
+message PatientContext {
+  // Age in years
+  int32 age = 1;
+
+  // Biological sex (for PGMU norms)
+  BiologicalSex biological_sex = 2;
+
+  // Known contraindications (from medical history)
+  repeated string contraindications = 3;
+
+  // Current medications
+  repeated string current_medications = 4;
+
+  // Risk factors
+  repeated string risk_factors = 5;
+}
+
+// ============================================================================
+// IMAGE DATA
+// ============================================================================
+
+/**
+ * Image data for analysis.
+ * Supports both embedded bytes and URL references.
+ */
+message ImageData {
+  oneof image_source {
+    // Raw image bytes (PNG, JPEG)
+    bytes image_bytes = 1;
+
+    // URL to image (must be accessible by ML service)
+    string image_url = 2;
+  }
+
+  // Image format
+  ImageFormat format = 3;
+
+  // Image dimensions (if known)
+  int32 width = 4;
+  int32 height = 5;
+
+  // Scalp zone (for trichoscopy images)
+  ScalpZone zone = 6;
+
+  // Capture device/method
+  string capture_device = 7;
+
+  // Magnification level (if applicable)
+  float magnification = 8;
+}
+
+enum ImageFormat {
+  IMAGE_FORMAT_UNSPECIFIED = 0;
+  IMAGE_FORMAT_JPEG = 1;
+  IMAGE_FORMAT_PNG = 2;
+  IMAGE_FORMAT_TIFF = 3;
+  IMAGE_FORMAT_BMP = 4;
+}
+
+// ============================================================================
+// AUDIO DATA (for Acoustic analysis)
+// ============================================================================
+
+/**
+ * Audio data for acoustic analysis.
+ */
+message AudioData {
+  oneof audio_source {
+    // Raw audio bytes
+    bytes audio_bytes = 1;
+
+    // URL to audio file
+    string audio_url = 2;
+  }
+
+  // Audio format
+  AudioFormat format = 3;
+
+  // Sample rate (Hz)
+  int32 sample_rate = 4;
+
+  // Number of channels
+  int32 channels = 5;
+
+  // Duration in milliseconds
+  int64 duration_ms = 6;
+
+  // Scalp zone where measurement was taken
+  ScalpZone zone = 7;
+
+  // Sensor type used
+  string sensor_type = 8;
+}
+
+enum AudioFormat {
+  AUDIO_FORMAT_UNSPECIFIED = 0;
+  AUDIO_FORMAT_WAV = 1;
+  AUDIO_FORMAT_MP3 = 2;
+  AUDIO_FORMAT_FLAC = 3;
+  AUDIO_FORMAT_RAW_PCM = 4;
+}
+
+// ============================================================================
+// BOUNDING BOX AND REGIONS
+// ============================================================================
+
+/**
+ * Bounding box for object detection.
+ * Coordinates normalized to [0, 1] relative to image dimensions.
+ */
+message BoundingBox {
+  float x_min = 1;
+  float y_min = 2;
+  float x_max = 3;
+  float y_max = 4;
+}
+
+/**
+ * Polygon region (for segmentation masks).
+ * Points are normalized to [0, 1].
+ */
+message Polygon {
+  repeated Point points = 1;
+}
+
+message Point {
+  float x = 1;
+  float y = 2;
+}
+
+// ============================================================================
+// QUALITY ASSESSMENT
+// ============================================================================
+
+/**
+ * Image quality assessment.
+ * Per CLAUDE.md Section 6.4: Quality validation before analysis.
+ */
+message ImageQualityAssessment {
+  // Overall quality score (0.0 - 1.0)
+  float overall_score = 1;
+
+  // Quality level
+  QualityLevel quality_level = 2;
+
+  // Individual quality factors
+  float sharpness = 3;
+  float brightness = 4;
+  float contrast = 5;
+  float noise_level = 6;
+
+  // Is image suitable for analysis?
+  bool is_suitable = 7;
+
+  // Quality warnings
+  repeated string warnings = 8;
+
+  // Recommendations for improvement
+  repeated string recommendations = 9;
+}
+
+enum QualityLevel {
+  QUALITY_LEVEL_UNSPECIFIED = 0;
+  QUALITY_LEVEL_POOR = 1;
+  QUALITY_LEVEL_FAIR = 2;
+  QUALITY_LEVEL_GOOD = 3;
+  QUALITY_LEVEL_EXCELLENT = 4;
+}
+
+// ============================================================================
+// MODEL INFORMATION
+// ============================================================================
+
+/**
+ * Model information and metadata.
+ * Required for IEC 62304 SOUP documentation.
+ */
+message ModelInfo {
+  // Model identifier
+  string model_id = 1;
+
+  // Model name
+  string model_name = 2;
+
+  // Version string
+  string version = 3;
+
+  // Model architecture (e.g., "DINOv2-ViT-B/14")
+  string architecture = 4;
+
+  // Training dataset
+  string training_dataset = 5;
+
+  // Validation metrics
+  map<string, float> validation_metrics = 6;
+
+  // Known limitations
+  repeated string known_limitations = 7;
+
+  // License
+  string license = 8;
+
+  // Last updated timestamp
+  string last_updated = 9;
+}
+
+// Reserved field numbers for future use
+// reserved 100 to 199; // Reserved for FolliCore extensions

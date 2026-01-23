@@ -1,0 +1,515 @@
+/**
+ * FolliCore Vision Service - Protocol Definitions
+ *
+ * Version: 1.0.0
+ *
+ * Defines the gRPC service interface for vision-based hair analysis.
+ * Uses DINOv2 for feature extraction and MedSAM2 for segmentation.
+ *
+ * Scientific References:
+ * - DINOv2: Oquab et al. (2023) "DINOv2: Learning Robust Visual Features"
+ * - MedSAM2: Wang et al. (2024) "MedSAM2: Medical Image Segmentation"
+ * - PGMU Norms: Pirogov Russian National Research Medical University
+ *
+ * IEC 62304 Compliance:
+ * - This service is part of Class C software (treatment recommendations)
+ * - All predictions include confidence scores per CLAUDE.md Section 6.1
+ * - Explainability features enabled per GDPR Article 22
+ */
+
+syntax = "proto3";
+
+package follicore.vision.v1;
+
+import "follicore.proto";
+
+option java_multiple_files = true;
+option java_package = "com.follicore.ml.vision.v1";
+option go_package = "github.com/follicore/ml/vision/v1;visionml";
+
+// ============================================================================
+// VISION SERVICE
+// ============================================================================
+
+/**
+ * VisionService provides ML-based analysis of trichoscopy images.
+ *
+ * Capabilities:
+ * - Feature extraction (DINOv2 embeddings)
+ * - Follicle segmentation (MedSAM2)
+ * - Morphometric analysis (PGMU methodology)
+ * - Image quality assessment
+ */
+service VisionService {
+  // Extract features from trichoscopy image
+  rpc ExtractFeatures(ExtractFeaturesRequest) returns (ExtractFeaturesResponse);
+
+  // Segment follicles in image
+  rpc SegmentFollicles(SegmentFolliclesRequest) returns (SegmentFolliclesResponse);
+
+  // Full morphometric analysis
+  rpc AnalyzeMorphometry(AnalyzeMorphometryRequest) returns (AnalyzeMorphometryResponse);
+
+  // Assess image quality
+  rpc AssessImageQuality(AssessImageQualityRequest) returns (AssessImageQualityResponse);
+
+  // Batch processing (streaming)
+  rpc ExtractFeaturesBatch(stream ExtractFeaturesRequest) returns (stream ExtractFeaturesResponse);
+
+  // Get model information
+  rpc GetModelInfo(GetModelInfoRequest) returns (GetModelInfoResponse);
+}
+
+// ============================================================================
+// FEATURE EXTRACTION
+// ============================================================================
+
+message ExtractFeaturesRequest {
+  // Request metadata (required)
+  follicore.v1.RequestMetadata metadata = 1;
+
+  // Image to analyze
+  follicore.v1.ImageData image = 2;
+
+  // Patient context (optional, for personalized analysis)
+  follicore.v1.PatientContext patient_context = 3;
+
+  // Feature extraction options
+  FeatureExtractionOptions options = 4;
+}
+
+message FeatureExtractionOptions {
+  // Return attention maps (for explainability)
+  bool return_attention_maps = 1;
+
+  // Return patch-level features (vs CLS token only)
+  bool return_patch_features = 2;
+
+  // Specific model to use (empty = default)
+  string model_id = 3;
+
+  // Apply preprocessing
+  bool apply_preprocessing = 4;
+}
+
+message ExtractFeaturesResponse {
+  // Response metadata
+  follicore.v1.ResponseMetadata metadata = 1;
+
+  // Success indicator
+  bool success = 2;
+
+  // Error information (if success = false)
+  follicore.v1.Error error = 3;
+
+  // Extracted features
+  FeatureVector features = 4;
+
+  // Image quality assessment
+  follicore.v1.ImageQualityAssessment quality = 5;
+
+  // Attention maps (if requested)
+  repeated AttentionMap attention_maps = 6;
+}
+
+/**
+ * Feature vector from DINOv2.
+ * Embedding dimension: 768 (ViT-B) or 1024 (ViT-L).
+ */
+message FeatureVector {
+  // CLS token embedding
+  repeated float embedding = 1;
+
+  // Embedding dimension
+  int32 dimension = 2;
+
+  // Model used for extraction
+  string model_name = 3;
+
+  // Patch embeddings (if requested)
+  repeated PatchFeature patch_features = 4;
+}
+
+message PatchFeature {
+  // Patch index
+  int32 patch_index = 1;
+
+  // Patch position (normalized)
+  float x = 2;
+  float y = 3;
+
+  // Patch embedding
+  repeated float embedding = 4;
+}
+
+/**
+ * Attention map for explainability.
+ * Per CLAUDE.md Section 6.3: Explainability requirement.
+ */
+message AttentionMap {
+  // Layer index
+  int32 layer = 1;
+
+  // Head index
+  int32 head = 2;
+
+  // Attention weights (flattened, row-major)
+  repeated float weights = 3;
+
+  // Map dimensions
+  int32 height = 4;
+  int32 width = 5;
+}
+
+// ============================================================================
+// FOLLICLE SEGMENTATION
+// ============================================================================
+
+message SegmentFolliclesRequest {
+  follicore.v1.RequestMetadata metadata = 1;
+  follicore.v1.ImageData image = 2;
+  follicore.v1.PatientContext patient_context = 3;
+  SegmentationOptions options = 4;
+}
+
+message SegmentationOptions {
+  // Minimum confidence for detection
+  float min_confidence = 1;
+
+  // Maximum number of follicles to return
+  int32 max_follicles = 2;
+
+  // Return masks (vs bounding boxes only)
+  bool return_masks = 3;
+
+  // Include vellus hairs
+  bool include_vellus = 4;
+}
+
+message SegmentFolliclesResponse {
+  follicore.v1.ResponseMetadata metadata = 1;
+  bool success = 2;
+  follicore.v1.Error error = 3;
+
+  // Detected follicles
+  repeated DetectedFollicle follicles = 4;
+
+  // Image quality
+  follicore.v1.ImageQualityAssessment quality = 5;
+
+  // Overall statistics
+  FollicleStatistics statistics = 6;
+}
+
+/**
+ * Detected follicle with properties.
+ */
+message DetectedFollicle {
+  // Unique ID within this analysis
+  int32 follicle_id = 1;
+
+  // Bounding box
+  follicore.v1.BoundingBox bounding_box = 2;
+
+  // Segmentation mask (if requested)
+  SegmentationMask mask = 3;
+
+  // Follicle type
+  FollicleType follicle_type = 4;
+
+  // Detection confidence
+  follicore.v1.ConfidenceScore confidence = 5;
+
+  // Morphometric measurements
+  FollicleMeasurements measurements = 6;
+
+  // Health indicators
+  FollicleHealthIndicators health = 7;
+}
+
+enum FollicleType {
+  FOLLICLE_TYPE_UNSPECIFIED = 0;
+  FOLLICLE_TYPE_TERMINAL = 1;      // Thick, pigmented
+  FOLLICLE_TYPE_VELLUS = 2;        // Fine, unpigmented
+  FOLLICLE_TYPE_INTERMEDIATE = 3;  // Transitioning (miniaturization)
+}
+
+message SegmentationMask {
+  // Run-length encoded mask
+  repeated int32 rle_counts = 1;
+
+  // Mask dimensions
+  int32 height = 2;
+  int32 width = 3;
+
+  // Area in pixels
+  int32 area = 4;
+}
+
+/**
+ * Follicle measurements based on PGMU methodology.
+ * All measurements in micrometers (μm).
+ */
+message FollicleMeasurements {
+  // Bulb width (PGMU norm: 70-75 μm)
+  float bulb_width_um = 1;
+
+  // Shaft thickness (PGMU norm: 28-34 μm)
+  float shaft_thickness_um = 2;
+
+  // Hair shaft angle (degrees from skin surface)
+  float shaft_angle_deg = 3;
+
+  // Follicle depth estimate (if determinable)
+  float depth_estimate_um = 4;
+
+  // Measurement confidence
+  follicore.v1.ConfidenceScore measurement_confidence = 5;
+}
+
+message FollicleHealthIndicators {
+  // Anagen/telogen phase estimate
+  HairCyclePhase phase = 1;
+
+  // Miniaturization score (0.0 = healthy, 1.0 = fully miniaturized)
+  float miniaturization_score = 2;
+
+  // Inflammation indicator
+  float inflammation_score = 3;
+
+  // Pigmentation level
+  float pigmentation = 4;
+
+  // Overall health score
+  float health_score = 5;
+}
+
+enum HairCyclePhase {
+  HAIR_CYCLE_PHASE_UNSPECIFIED = 0;
+  HAIR_CYCLE_PHASE_ANAGEN = 1;    // Active growth
+  HAIR_CYCLE_PHASE_CATAGEN = 2;  // Regression
+  HAIR_CYCLE_PHASE_TELOGEN = 3;  // Resting
+  HAIR_CYCLE_PHASE_EXOGEN = 4;   // Shedding
+}
+
+message FollicleStatistics {
+  // Total follicles detected
+  int32 total_count = 1;
+
+  // Counts by type
+  int32 terminal_count = 2;
+  int32 vellus_count = 3;
+  int32 intermediate_count = 4;
+
+  // Density (follicles per cm²)
+  float density_per_cm2 = 5;
+
+  // Vellus-to-terminal ratio
+  float vellus_terminal_ratio = 6;
+
+  // Average measurements
+  float avg_bulb_width = 7;
+  float avg_shaft_thickness = 8;
+
+  // Phase distribution
+  float anagen_ratio = 9;
+  float telogen_ratio = 10;
+}
+
+// ============================================================================
+// MORPHOMETRIC ANALYSIS (FULL)
+// ============================================================================
+
+message AnalyzeMorphometryRequest {
+  follicore.v1.RequestMetadata metadata = 1;
+  follicore.v1.ImageData image = 2;
+  follicore.v1.PatientContext patient_context = 3;
+  MorphometryOptions options = 4;
+}
+
+message MorphometryOptions {
+  // Include age estimation based on PGMU norms
+  bool estimate_follicle_age = 1;
+
+  // Compare to PGMU norms
+  bool compare_to_norms = 2;
+
+  // Include detailed follicle analysis
+  bool detailed_analysis = 3;
+
+  // Include recommendations
+  bool include_recommendations = 4;
+}
+
+message AnalyzeMorphometryResponse {
+  follicore.v1.ResponseMetadata metadata = 1;
+  bool success = 2;
+  follicore.v1.Error error = 3;
+
+  // Full morphometric analysis
+  MorphometricAnalysis analysis = 4;
+
+  // Image quality
+  follicore.v1.ImageQualityAssessment quality = 5;
+
+  // Follicle details
+  repeated DetectedFollicle follicles = 6;
+
+  // PGMU norm comparison
+  PGMUComparison pgmu_comparison = 7;
+
+  // Explainability information
+  AnalysisExplanation explanation = 8;
+}
+
+/**
+ * Complete morphometric analysis result.
+ * Based on PGMU methodology and FotoFinder metrics.
+ */
+message MorphometricAnalysis {
+  // Zone analyzed
+  follicore.v1.ScalpZone zone = 1;
+
+  // Follicle statistics
+  FollicleStatistics statistics = 2;
+
+  // Estimated follicle biological age
+  int32 estimated_follicle_age = 3;
+
+  // Patient chronological age (from context)
+  int32 chronological_age = 4;
+
+  // Age delta (positive = accelerated aging)
+  int32 age_delta = 5;
+
+  // Dominant follicle state
+  FollicleStateEstimate dominant_state = 6;
+
+  // Progression risk (0.0 - 1.0)
+  float progression_risk = 7;
+
+  // Recovery potential (0.0 - 1.0)
+  float recovery_potential = 8;
+
+  // Overall analysis confidence
+  follicore.v1.ConfidenceScore overall_confidence = 9;
+}
+
+/**
+ * Follicle state estimation (matches TypeScript FollicleState enum).
+ */
+message FollicleStateEstimate {
+  FollicleState state = 1;
+  float probability = 2;
+
+  // Probability distribution over all states
+  map<string, float> state_distribution = 3;
+}
+
+enum FollicleState {
+  FOLLICLE_STATE_UNSPECIFIED = 0;
+  FOLLICLE_STATE_HEALTHY_ANAGEN = 1;
+  FOLLICLE_STATE_HEALTHY_CATAGEN = 2;
+  FOLLICLE_STATE_HEALTHY_TELOGEN = 3;
+  FOLLICLE_STATE_EARLY_MINIATURIZATION = 4;
+  FOLLICLE_STATE_ADVANCED_MINIATURIZATION = 5;
+  FOLLICLE_STATE_STRESS_INDUCED = 6;
+  FOLLICLE_STATE_INFLAMMATION = 7;
+  FOLLICLE_STATE_SENILE_ALOPECIA = 8;
+  FOLLICLE_STATE_DORMANT = 9;
+  FOLLICLE_STATE_TERMINAL = 10;
+}
+
+/**
+ * Comparison to PGMU norms.
+ */
+message PGMUComparison {
+  // Expected bulb width for patient demographics
+  float expected_bulb_width = 1;
+
+  // Actual measured bulb width
+  float actual_bulb_width = 2;
+
+  // Expected shaft thickness
+  float expected_shaft_thickness = 3;
+
+  // Actual shaft thickness
+  float actual_shaft_thickness = 4;
+
+  // Deviation percentage
+  float bulb_width_deviation_pct = 5;
+  float shaft_thickness_deviation_pct = 6;
+
+  // Within normal range?
+  bool within_normal_range = 7;
+
+  // Reference age group used
+  string reference_age_group = 8;
+}
+
+/**
+ * Analysis explanation for transparency.
+ * Per GDPR Article 22 and CLAUDE.md Section 6.3.
+ */
+message AnalysisExplanation {
+  // Primary factors driving the analysis
+  repeated AnalysisFactor primary_factors = 1;
+
+  // Data quality considerations
+  repeated string quality_notes = 2;
+
+  // Known limitations for this analysis
+  repeated string limitations = 3;
+
+  // Confidence breakdown
+  map<string, float> confidence_breakdown = 4;
+
+  // Suggested follow-up actions
+  repeated string suggested_actions = 5;
+
+  // Disclaimer (always present for medical context)
+  string disclaimer = 6;
+}
+
+message AnalysisFactor {
+  string factor_name = 1;
+  string description = 2;
+  float weight = 3;
+  string evidence = 4;
+}
+
+// ============================================================================
+// IMAGE QUALITY ASSESSMENT
+// ============================================================================
+
+message AssessImageQualityRequest {
+  follicore.v1.RequestMetadata metadata = 1;
+  follicore.v1.ImageData image = 2;
+}
+
+message AssessImageQualityResponse {
+  follicore.v1.ResponseMetadata metadata = 1;
+  bool success = 2;
+  follicore.v1.Error error = 3;
+  follicore.v1.ImageQualityAssessment quality = 4;
+}
+
+// ============================================================================
+// MODEL INFO
+// ============================================================================
+
+message GetModelInfoRequest {
+  // Model ID (empty = all available models)
+  string model_id = 1;
+}
+
+message GetModelInfoResponse {
+  // Available models
+  repeated follicore.v1.ModelInfo models = 1;
+
+  // Default model
+  string default_model_id = 2;
+}
+
+// Reserved field numbers for future use
+// reserved 100 to 199;

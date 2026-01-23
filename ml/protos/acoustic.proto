@@ -1,0 +1,449 @@
+/**
+ * FolliCore Acoustic Service - Protocol Definitions
+ *
+ * Version: 1.0.0
+ *
+ * Defines the gRPC service interface for acoustic-based hair analysis.
+ * Uses OpenBEATs or equivalent for audio embedding extraction.
+ *
+ * Scientific References:
+ * - OpenBEATs: arXiv:2506.14148 (2025) "Broad Embedding Audio Transformers"
+ * - Acoustic Hair Analysis: Emerging field - limited published research
+ *
+ * Hardware Integration:
+ * - ScAlN MEMS piezoelectric sensors
+ * - ESP32-S3 microcontroller
+ * - 4-8 kHz frequency range for hair analysis
+ *
+ * IEC 62304 Compliance:
+ * - This service is part of Class C software
+ * - Per IEC 60601-1: Electrical safety for medical equipment
+ */
+
+syntax = "proto3";
+
+package follicore.acoustic.v1;
+
+import "follicore.proto";
+
+option java_multiple_files = true;
+option java_package = "com.follicore.ml.acoustic.v1";
+option go_package = "github.com/follicore/ml/acoustic/v1;acousticml";
+
+// ============================================================================
+// ACOUSTIC SERVICE
+// ============================================================================
+
+/**
+ * AcousticService provides ML-based analysis of acoustic signals
+ * captured from scalp/hair using piezoelectric sensors.
+ *
+ * Capabilities:
+ * - Audio feature extraction (OpenBEATs/Mamba embeddings)
+ * - Hair property estimation (porosity, hydration, damage)
+ * - Spectral analysis (Mel-spectrogram features)
+ * - Signal quality assessment
+ */
+service AcousticService {
+  // Extract features from acoustic signal
+  rpc ExtractFeatures(ExtractAcousticFeaturesRequest) returns (ExtractAcousticFeaturesResponse);
+
+  // Analyze hair properties from acoustic signal
+  rpc AnalyzeHairProperties(AnalyzeHairPropertiesRequest) returns (AnalyzeHairPropertiesResponse);
+
+  // Perform spectral analysis
+  rpc AnalyzeSpectrum(AnalyzeSpectrumRequest) returns (AnalyzeSpectrumResponse);
+
+  // Assess signal quality
+  rpc AssessSignalQuality(AssessSignalQualityRequest) returns (AssessSignalQualityResponse);
+
+  // Batch processing (streaming)
+  rpc ExtractFeaturesBatch(stream ExtractAcousticFeaturesRequest) returns (stream ExtractAcousticFeaturesResponse);
+
+  // Get model information
+  rpc GetModelInfo(GetAcousticModelInfoRequest) returns (GetAcousticModelInfoResponse);
+}
+
+// ============================================================================
+// FEATURE EXTRACTION
+// ============================================================================
+
+message ExtractAcousticFeaturesRequest {
+  follicore.v1.RequestMetadata metadata = 1;
+
+  // Audio data to analyze
+  follicore.v1.AudioData audio = 2;
+
+  // Patient context
+  follicore.v1.PatientContext patient_context = 3;
+
+  // Extraction options
+  AcousticFeatureOptions options = 4;
+}
+
+message AcousticFeatureOptions {
+  // Return Mel-spectrogram
+  bool return_mel_spectrogram = 1;
+
+  // Return time-domain features
+  bool return_time_features = 2;
+
+  // Specific model to use
+  string model_id = 3;
+
+  // Apply noise reduction
+  bool apply_noise_reduction = 4;
+
+  // Frequency range filter (Hz)
+  float min_frequency = 5;
+  float max_frequency = 6;
+}
+
+message ExtractAcousticFeaturesResponse {
+  follicore.v1.ResponseMetadata metadata = 1;
+  bool success = 2;
+  follicore.v1.Error error = 3;
+
+  // Extracted features
+  AcousticFeatureVector features = 4;
+
+  // Signal quality assessment
+  SignalQualityAssessment quality = 5;
+
+  // Mel-spectrogram (if requested)
+  MelSpectrogram mel_spectrogram = 6;
+}
+
+/**
+ * Acoustic feature vector from OpenBEATs or similar model.
+ */
+message AcousticFeatureVector {
+  // Global embedding
+  repeated float embedding = 1;
+
+  // Embedding dimension
+  int32 dimension = 2;
+
+  // Model used
+  string model_name = 3;
+
+  // Frame-level features (if available)
+  repeated FrameFeature frame_features = 4;
+}
+
+message FrameFeature {
+  int32 frame_index = 1;
+  float timestamp_ms = 2;
+  repeated float embedding = 3;
+}
+
+/**
+ * Mel-spectrogram representation.
+ */
+message MelSpectrogram {
+  // Flattened spectrogram data (time x frequency)
+  repeated float data = 1;
+
+  // Dimensions
+  int32 num_frames = 2;
+  int32 num_mel_bins = 3;
+
+  // Time resolution
+  float frame_step_ms = 4;
+
+  // Frequency range
+  float min_frequency = 5;
+  float max_frequency = 6;
+}
+
+// ============================================================================
+// HAIR PROPERTY ANALYSIS
+// ============================================================================
+
+message AnalyzeHairPropertiesRequest {
+  follicore.v1.RequestMetadata metadata = 1;
+  follicore.v1.AudioData audio = 2;
+  follicore.v1.PatientContext patient_context = 3;
+  HairPropertyOptions options = 4;
+}
+
+message HairPropertyOptions {
+  // Include detailed spectral analysis
+  bool detailed_analysis = 1;
+
+  // Measurement protocol
+  MeasurementProtocol protocol = 2;
+
+  // Reference calibration data (if available)
+  bytes calibration_data = 3;
+}
+
+enum MeasurementProtocol {
+  MEASUREMENT_PROTOCOL_UNSPECIFIED = 0;
+  MEASUREMENT_PROTOCOL_CHIRP = 1;        // Frequency sweep
+  MEASUREMENT_PROTOCOL_IMPULSE = 2;      // Tap/impulse response
+  MEASUREMENT_PROTOCOL_CONTINUOUS = 3;   // Continuous tone
+}
+
+message AnalyzeHairPropertiesResponse {
+  follicore.v1.ResponseMetadata metadata = 1;
+  bool success = 2;
+  follicore.v1.Error error = 3;
+
+  // Hair property estimates
+  HairPropertyEstimates properties = 4;
+
+  // Signal quality
+  SignalQualityAssessment quality = 5;
+
+  // Explainability
+  AcousticAnalysisExplanation explanation = 6;
+}
+
+/**
+ * Estimated hair properties from acoustic analysis.
+ *
+ * IMPORTANT: These are experimental measurements.
+ * Per CLAUDE.md: Clearly communicate uncertainty.
+ */
+message HairPropertyEstimates {
+  // Porosity level (0.0 = low, 1.0 = high)
+  PropertyEstimate porosity = 1;
+
+  // Hydration level (0.0 = dry, 1.0 = well-hydrated)
+  PropertyEstimate hydration = 2;
+
+  // Damage level (0.0 = healthy, 1.0 = severely damaged)
+  PropertyEstimate damage = 3;
+
+  // Elasticity (0.0 = brittle, 1.0 = elastic)
+  PropertyEstimate elasticity = 4;
+
+  // Density estimate (relative to zone norms)
+  PropertyEstimate density = 5;
+
+  // Scalp oiliness (0.0 = dry, 1.0 = oily)
+  PropertyEstimate scalp_oiliness = 6;
+
+  // Overall hair health score
+  PropertyEstimate overall_health = 7;
+
+  // Scalp zone analyzed
+  follicore.v1.ScalpZone zone = 8;
+}
+
+/**
+ * Property estimate with confidence and uncertainty.
+ */
+message PropertyEstimate {
+  // Estimated value (0.0 - 1.0)
+  float value = 1;
+
+  // Confidence in estimate
+  follicore.v1.ConfidenceScore confidence = 2;
+
+  // Lower bound (95% CI)
+  float lower_bound = 3;
+
+  // Upper bound (95% CI)
+  float upper_bound = 4;
+
+  // Unit of measurement (if applicable)
+  string unit = 5;
+
+  // Measurement quality
+  MeasurementQuality measurement_quality = 6;
+}
+
+enum MeasurementQuality {
+  MEASUREMENT_QUALITY_UNSPECIFIED = 0;
+  MEASUREMENT_QUALITY_POOR = 1;
+  MEASUREMENT_QUALITY_ACCEPTABLE = 2;
+  MEASUREMENT_QUALITY_GOOD = 3;
+  MEASUREMENT_QUALITY_EXCELLENT = 4;
+}
+
+message AcousticAnalysisExplanation {
+  // Factors influencing the analysis
+  repeated AcousticFactor factors = 1;
+
+  // Signal characteristics
+  repeated string signal_notes = 2;
+
+  // Known limitations
+  repeated string limitations = 3;
+
+  // Experimental status disclaimer
+  string experimental_disclaimer = 4;
+
+  // Recommended validation steps
+  repeated string validation_recommendations = 5;
+}
+
+message AcousticFactor {
+  string factor_name = 1;
+  string description = 2;
+  float contribution = 3;
+  string frequency_range = 4;
+}
+
+// ============================================================================
+// SPECTRAL ANALYSIS
+// ============================================================================
+
+message AnalyzeSpectrumRequest {
+  follicore.v1.RequestMetadata metadata = 1;
+  follicore.v1.AudioData audio = 2;
+  SpectralAnalysisOptions options = 3;
+}
+
+message SpectralAnalysisOptions {
+  // FFT size
+  int32 fft_size = 1;
+
+  // Hop size (samples)
+  int32 hop_size = 2;
+
+  // Window function
+  WindowFunction window = 3;
+
+  // Frequency bands to analyze
+  repeated FrequencyBand bands = 4;
+}
+
+enum WindowFunction {
+  WINDOW_FUNCTION_UNSPECIFIED = 0;
+  WINDOW_FUNCTION_HANN = 1;
+  WINDOW_FUNCTION_HAMMING = 2;
+  WINDOW_FUNCTION_BLACKMAN = 3;
+  WINDOW_FUNCTION_KAISER = 4;
+}
+
+message FrequencyBand {
+  string name = 1;
+  float min_hz = 2;
+  float max_hz = 3;
+}
+
+message AnalyzeSpectrumResponse {
+  follicore.v1.ResponseMetadata metadata = 1;
+  bool success = 2;
+  follicore.v1.Error error = 3;
+
+  // Spectral analysis results
+  SpectralAnalysis analysis = 4;
+}
+
+message SpectralAnalysis {
+  // Power spectrum (frequency bins)
+  repeated float power_spectrum = 1;
+
+  // Frequency bin centers (Hz)
+  repeated float frequency_bins = 2;
+
+  // Peak frequencies
+  repeated SpectralPeak peaks = 3;
+
+  // Band energies (if bands specified)
+  repeated BandEnergy band_energies = 4;
+
+  // Summary statistics
+  SpectralStatistics statistics = 5;
+}
+
+message SpectralPeak {
+  float frequency_hz = 1;
+  float amplitude_db = 2;
+  float prominence = 3;
+  float width_hz = 4;
+}
+
+message BandEnergy {
+  string band_name = 1;
+  float min_hz = 2;
+  float max_hz = 3;
+  float energy_db = 4;
+  float relative_energy = 5;
+}
+
+message SpectralStatistics {
+  float spectral_centroid = 1;
+  float spectral_spread = 2;
+  float spectral_flatness = 3;
+  float spectral_rolloff = 4;
+  float total_energy = 5;
+  float signal_to_noise_ratio = 6;
+}
+
+// ============================================================================
+// SIGNAL QUALITY ASSESSMENT
+// ============================================================================
+
+message AssessSignalQualityRequest {
+  follicore.v1.RequestMetadata metadata = 1;
+  follicore.v1.AudioData audio = 2;
+}
+
+message AssessSignalQualityResponse {
+  follicore.v1.ResponseMetadata metadata = 1;
+  bool success = 2;
+  follicore.v1.Error error = 3;
+  SignalQualityAssessment quality = 4;
+}
+
+/**
+ * Signal quality assessment for acoustic data.
+ */
+message SignalQualityAssessment {
+  // Overall quality score (0.0 - 1.0)
+  float overall_score = 1;
+
+  // Quality level
+  SignalQualityLevel quality_level = 2;
+
+  // Is signal suitable for analysis?
+  bool is_suitable = 3;
+
+  // Individual quality factors
+  float signal_to_noise_ratio = 4;
+  float clipping_ratio = 5;
+  float silence_ratio = 6;
+  float saturation_ratio = 7;
+
+  // Contact quality (sensor-scalp contact)
+  float contact_quality = 8;
+
+  // Calibration status
+  bool is_calibrated = 9;
+
+  // Quality warnings
+  repeated string warnings = 10;
+
+  // Recommendations
+  repeated string recommendations = 11;
+}
+
+enum SignalQualityLevel {
+  SIGNAL_QUALITY_LEVEL_UNSPECIFIED = 0;
+  SIGNAL_QUALITY_LEVEL_UNUSABLE = 1;
+  SIGNAL_QUALITY_LEVEL_POOR = 2;
+  SIGNAL_QUALITY_LEVEL_ACCEPTABLE = 3;
+  SIGNAL_QUALITY_LEVEL_GOOD = 4;
+  SIGNAL_QUALITY_LEVEL_EXCELLENT = 5;
+}
+
+// ============================================================================
+// MODEL INFO
+// ============================================================================
+
+message GetAcousticModelInfoRequest {
+  string model_id = 1;
+}
+
+message GetAcousticModelInfoResponse {
+  repeated follicore.v1.ModelInfo models = 1;
+  string default_model_id = 2;
+}
+
+// Reserved field numbers
+// reserved 100 to 199;

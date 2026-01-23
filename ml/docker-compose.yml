@@ -1,0 +1,186 @@
+# ============================================================================
+# FolliCore ML API Docker Compose
+# ============================================================================
+#
+# Development and testing configuration.
+#
+# Usage:
+#   # CPU mode
+#   docker-compose up
+#
+#   # GPU mode (requires NVIDIA Docker)
+#   docker-compose --profile gpu up
+#
+#   # Build and run
+#   docker-compose up --build
+#
+# ============================================================================
+
+version: '3.8'
+
+services:
+  # --------------------------------------------------------------------------
+  # ML API Service (CPU)
+  # --------------------------------------------------------------------------
+  ml-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime-cpu
+    image: follicore-ml:cpu
+    container_name: follicore-ml-api
+    restart: unless-stopped
+
+    ports:
+      - "8000:8000"   # REST API
+      - "50051:50051" # gRPC
+      - "9090:9090"   # Metrics
+
+    environment:
+      - FOLLICORE_DEVICE=cpu
+      - FOLLICORE_LOG_LEVEL=INFO
+      - FOLLICORE_LOG_FORMAT=json
+      - FOLLICORE_ENABLE_METRICS=true
+      - FOLLICORE_ENABLE_AUDIT=true
+
+    volumes:
+      # Mount models directory
+      - ./models:/app/models:ro
+      # Mount logs directory
+      - ./logs:/app/logs
+
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+    networks:
+      - follicore-network
+
+    deploy:
+      resources:
+        limits:
+          cpus: '4'
+          memory: 8G
+        reservations:
+          cpus: '2'
+          memory: 4G
+
+  # --------------------------------------------------------------------------
+  # ML API Service (GPU)
+  # --------------------------------------------------------------------------
+  ml-api-gpu:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime-gpu
+    image: follicore-ml:gpu
+    container_name: follicore-ml-api-gpu
+    restart: unless-stopped
+    profiles:
+      - gpu
+
+    ports:
+      - "8000:8000"
+      - "50051:50051"
+      - "9090:9090"
+
+    environment:
+      - FOLLICORE_DEVICE=cuda
+      - FOLLICORE_USE_FP16=true
+      - FOLLICORE_LOG_LEVEL=INFO
+      - FOLLICORE_LOG_FORMAT=json
+      - FOLLICORE_ENABLE_METRICS=true
+      - NVIDIA_VISIBLE_DEVICES=all
+
+    volumes:
+      - ./models:/app/models:ro
+      - ./logs:/app/logs
+
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+
+    networks:
+      - follicore-network
+
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  # --------------------------------------------------------------------------
+  # Prometheus (Metrics collection)
+  # --------------------------------------------------------------------------
+  prometheus:
+    image: prom/prometheus:v2.47.0
+    container_name: follicore-prometheus
+    restart: unless-stopped
+    profiles:
+      - monitoring
+
+    ports:
+      - "9091:9090"
+
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.enable-lifecycle'
+
+    networks:
+      - follicore-network
+
+  # --------------------------------------------------------------------------
+  # Grafana (Metrics visualization)
+  # --------------------------------------------------------------------------
+  grafana:
+    image: grafana/grafana:10.2.0
+    container_name: follicore-grafana
+    restart: unless-stopped
+    profiles:
+      - monitoring
+
+    ports:
+      - "3000:3000"
+
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources:ro
+
+    networks:
+      - follicore-network
+
+    depends_on:
+      - prometheus
+
+# --------------------------------------------------------------------------
+# Networks
+# --------------------------------------------------------------------------
+networks:
+  follicore-network:
+    driver: bridge
+
+# --------------------------------------------------------------------------
+# Volumes
+# --------------------------------------------------------------------------
+volumes:
+  prometheus-data:
+  grafana-data:

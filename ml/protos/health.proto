@@ -1,0 +1,343 @@
+/**
+ * FolliCore Health Service - Protocol Definitions
+ *
+ * Version: 1.0.0
+ *
+ * Defines health check services for Kubernetes liveness, readiness,
+ * and model availability probes.
+ *
+ * References:
+ * - gRPC Health Checking Protocol: https://github.com/grpc/grpc/blob/master/doc/health-checking.md
+ * - Kubernetes Health Checks: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/
+ * - KServe Model Serving: https://kserve.github.io/website/
+ *
+ * Per research findings:
+ * - /health only indicates server process is running
+ * - /v1/models verifies models are loaded and ready
+ * - Startup probes needed for long model loading times
+ */
+
+syntax = "proto3";
+
+package follicore.health.v1;
+
+option java_multiple_files = true;
+option java_package = "com.follicore.ml.health.v1";
+option go_package = "github.com/follicore/ml/health/v1;healthml";
+
+// ============================================================================
+// HEALTH SERVICE (Standard gRPC Health Protocol)
+// ============================================================================
+
+/**
+ * Standard gRPC health checking service.
+ * Compatible with Kubernetes gRPC health probes.
+ */
+service Health {
+  // Check server health (liveness)
+  rpc Check(HealthCheckRequest) returns (HealthCheckResponse);
+
+  // Watch health status (streaming)
+  rpc Watch(HealthCheckRequest) returns (stream HealthCheckResponse);
+}
+
+message HealthCheckRequest {
+  // Service name to check (empty = overall health)
+  string service = 1;
+}
+
+message HealthCheckResponse {
+  ServingStatus status = 1;
+}
+
+enum ServingStatus {
+  SERVING_STATUS_UNKNOWN = 0;
+  SERVING_STATUS_SERVING = 1;
+  SERVING_STATUS_NOT_SERVING = 2;
+  SERVING_STATUS_SERVICE_UNKNOWN = 3;
+}
+
+// ============================================================================
+// MODEL READINESS SERVICE (Extended Health)
+// ============================================================================
+
+/**
+ * Extended health service for ML model readiness.
+ *
+ * Per research: Basic /health endpoint doesn't verify models are loaded.
+ * This service provides model-aware readiness checking.
+ */
+service ModelReadiness {
+  // Check if models are loaded and ready
+  rpc CheckModelsReady(ModelsReadyRequest) returns (ModelsReadyResponse);
+
+  // Get detailed model status
+  rpc GetModelStatus(ModelStatusRequest) returns (ModelStatusResponse);
+
+  // List all loaded models
+  rpc ListModels(ListModelsRequest) returns (ListModelsResponse);
+
+  // Warm up model (pre-load into GPU memory)
+  rpc WarmupModel(WarmupModelRequest) returns (WarmupModelResponse);
+}
+
+message ModelsReadyRequest {
+  // Specific models to check (empty = all required models)
+  repeated string model_ids = 1;
+
+  // Include detailed status
+  bool include_details = 2;
+}
+
+message ModelsReadyResponse {
+  // Overall readiness
+  bool ready = 1;
+
+  // Individual model statuses
+  repeated ModelReadinessStatus model_statuses = 2;
+
+  // Timestamp
+  string timestamp = 3;
+
+  // Time until ready estimate (ms, 0 if ready)
+  int64 estimated_time_to_ready_ms = 4;
+}
+
+message ModelReadinessStatus {
+  string model_id = 1;
+  string model_name = 2;
+  ModelState state = 3;
+  string state_message = 4;
+
+  // Load progress (0.0 - 1.0)
+  float load_progress = 5;
+
+  // Memory usage
+  int64 memory_usage_bytes = 6;
+
+  // Device where model is loaded
+  string device = 7;
+}
+
+enum ModelState {
+  MODEL_STATE_UNKNOWN = 0;
+  MODEL_STATE_NOT_LOADED = 1;
+  MODEL_STATE_LOADING = 2;
+  MODEL_STATE_LOADED = 3;
+  MODEL_STATE_READY = 4;         // Loaded and warmed up
+  MODEL_STATE_ERROR = 5;
+  MODEL_STATE_UNLOADING = 6;
+}
+
+message ModelStatusRequest {
+  string model_id = 1;
+}
+
+message ModelStatusResponse {
+  ModelReadinessStatus status = 1;
+
+  // Model info
+  ModelMetadata metadata = 2;
+
+  // Performance metrics
+  ModelPerformanceMetrics metrics = 3;
+}
+
+message ModelMetadata {
+  string model_id = 1;
+  string model_name = 2;
+  string version = 3;
+  string architecture = 4;
+  string framework = 5;  // e.g., "pytorch", "onnx"
+  int64 size_bytes = 6;
+  string loaded_at = 7;
+
+  // Input/output specifications
+  repeated TensorSpec inputs = 8;
+  repeated TensorSpec outputs = 9;
+}
+
+message TensorSpec {
+  string name = 1;
+  repeated int32 shape = 2;
+  string dtype = 3;
+}
+
+message ModelPerformanceMetrics {
+  // Inference statistics
+  int64 total_inferences = 1;
+  float avg_latency_ms = 2;
+  float p50_latency_ms = 3;
+  float p95_latency_ms = 4;
+  float p99_latency_ms = 5;
+
+  // Throughput
+  float inferences_per_second = 6;
+
+  // Error rate
+  float error_rate = 7;
+
+  // Resource usage
+  float gpu_utilization = 8;
+  int64 gpu_memory_used_bytes = 9;
+  int64 gpu_memory_total_bytes = 10;
+}
+
+message ListModelsRequest {
+  // Filter by state (empty = all)
+  repeated ModelState filter_states = 1;
+}
+
+message ListModelsResponse {
+  repeated ModelReadinessStatus models = 1;
+  int32 total_count = 2;
+  int32 ready_count = 3;
+}
+
+message WarmupModelRequest {
+  string model_id = 1;
+
+  // Number of warmup iterations
+  int32 warmup_iterations = 2;
+
+  // Optional warmup input (model-specific)
+  bytes warmup_input = 3;
+}
+
+message WarmupModelResponse {
+  bool success = 1;
+  string message = 2;
+
+  // Warmup performance
+  float avg_warmup_latency_ms = 3;
+  float first_inference_latency_ms = 4;
+}
+
+// ============================================================================
+// SYSTEM HEALTH SERVICE
+// ============================================================================
+
+/**
+ * System-level health information.
+ * For monitoring and observability.
+ */
+service SystemHealth {
+  // Get comprehensive system status
+  rpc GetSystemStatus(SystemStatusRequest) returns (SystemStatusResponse);
+
+  // Get resource usage
+  rpc GetResourceUsage(ResourceUsageRequest) returns (ResourceUsageResponse);
+
+  // Get service metrics
+  rpc GetMetrics(MetricsRequest) returns (MetricsResponse);
+}
+
+message SystemStatusRequest {
+  bool include_resource_usage = 1;
+  bool include_model_status = 2;
+}
+
+message SystemStatusResponse {
+  // Overall status
+  SystemState state = 1;
+
+  // Service info
+  string service_name = 2;
+  string version = 3;
+  string build_id = 4;
+  string start_time = 5;
+  int64 uptime_seconds = 6;
+
+  // Component statuses
+  repeated ComponentStatus components = 7;
+
+  // Resource usage (if requested)
+  ResourceUsage resource_usage = 8;
+
+  // Model status (if requested)
+  ModelsReadyResponse models = 9;
+}
+
+enum SystemState {
+  SYSTEM_STATE_UNKNOWN = 0;
+  SYSTEM_STATE_STARTING = 1;
+  SYSTEM_STATE_HEALTHY = 2;
+  SYSTEM_STATE_DEGRADED = 3;
+  SYSTEM_STATE_UNHEALTHY = 4;
+  SYSTEM_STATE_SHUTTING_DOWN = 5;
+}
+
+message ComponentStatus {
+  string component_name = 1;
+  ComponentState state = 2;
+  string message = 3;
+  string last_check_time = 4;
+}
+
+enum ComponentState {
+  COMPONENT_STATE_UNKNOWN = 0;
+  COMPONENT_STATE_HEALTHY = 1;
+  COMPONENT_STATE_DEGRADED = 2;
+  COMPONENT_STATE_UNHEALTHY = 3;
+}
+
+message ResourceUsageRequest {}
+
+message ResourceUsageResponse {
+  ResourceUsage usage = 1;
+}
+
+message ResourceUsage {
+  // CPU
+  float cpu_percent = 1;
+  int32 cpu_count = 2;
+
+  // Memory
+  int64 memory_used_bytes = 3;
+  int64 memory_total_bytes = 4;
+  float memory_percent = 5;
+
+  // GPU (if available)
+  repeated GPUUsage gpus = 6;
+
+  // Disk
+  int64 disk_used_bytes = 7;
+  int64 disk_total_bytes = 8;
+
+  // Network (if tracked)
+  int64 network_rx_bytes = 9;
+  int64 network_tx_bytes = 10;
+}
+
+message GPUUsage {
+  int32 gpu_index = 1;
+  string gpu_name = 2;
+  float utilization_percent = 3;
+  int64 memory_used_bytes = 4;
+  int64 memory_total_bytes = 5;
+  float temperature_celsius = 6;
+}
+
+message MetricsRequest {
+  // Metric name filter (empty = all)
+  repeated string metric_names = 1;
+
+  // Time range (seconds ago)
+  int32 time_range_seconds = 2;
+}
+
+message MetricsResponse {
+  repeated Metric metrics = 1;
+  string timestamp = 2;
+}
+
+message Metric {
+  string name = 1;
+  string type = 2;  // counter, gauge, histogram
+  double value = 3;
+  map<string, string> labels = 4;
+  string help = 5;
+}
+
+// Reserved field numbers
+// reserved 100 to 199;
