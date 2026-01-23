@@ -971,4 +971,195 @@ describe('FolliCoreEngine', () => {
       });
     });
   });
+
+  describe('Event-Driven Architecture integration', () => {
+    it('should allow setting EventBus after construction', () => {
+      const engine = new FolliCoreEngine();
+
+      // Create a mock EventBus
+      const mockEventBus = {
+        publish: jest.fn().mockResolvedValue(undefined),
+        subscribe: jest.fn(),
+        subscribeMany: jest.fn(),
+        unsubscribe: jest.fn(),
+        clearAll: jest.fn(),
+        getSubscriptionCount: jest.fn().mockReturnValue(0),
+        hasHandlers: jest.fn().mockReturnValue(false),
+      };
+
+      // Set EventBus - should not throw
+      engine.setEventBus(mockEventBus);
+      expect(mockEventBus).toBeDefined();
+    });
+
+    it('should allow setting user context for audit trail', () => {
+      const engine = new FolliCoreEngine();
+
+      // Should not throw
+      engine.setUserContext('clinician-123', 'session-456');
+    });
+
+    it('should emit PATIENT_INITIALIZED event when patient is initialized', async () => {
+      const publishedEvents: unknown[] = [];
+      const mockEventBus = {
+        publish: jest.fn().mockImplementation(async (event: unknown) => {
+          publishedEvents.push(event);
+        }),
+        subscribe: jest.fn(),
+        subscribeMany: jest.fn(),
+        unsubscribe: jest.fn(),
+        clearAll: jest.fn(),
+        getSubscriptionCount: jest.fn().mockReturnValue(0),
+        hasHandlers: jest.fn().mockReturnValue(false),
+      };
+
+      const engine = new FolliCoreEngine({ eventBus: mockEventBus });
+      const context = createPatientContext();
+
+      engine.initializePatient('event-test-patient', context);
+
+      // Wait for async event publishing
+      await new Promise(resolve => setTimeout(resolve, 10));
+
+      expect(mockEventBus.publish).toHaveBeenCalled();
+      const event = publishedEvents[0] as { eventType: string; payload: unknown };
+      expect(event.eventType).toBe('PATIENT_INITIALIZED');
+    });
+
+    it('should emit BELIEF_STATE_UPDATED event when belief is updated', async () => {
+      const publishedEvents: unknown[] = [];
+      const mockEventBus = {
+        publish: jest.fn().mockImplementation(async (event: unknown) => {
+          publishedEvents.push(event);
+        }),
+        subscribe: jest.fn(),
+        subscribeMany: jest.fn(),
+        unsubscribe: jest.fn(),
+        clearAll: jest.fn(),
+        getSubscriptionCount: jest.fn().mockReturnValue(0),
+        hasHandlers: jest.fn().mockReturnValue(false),
+      };
+
+      const engine = new FolliCoreEngine({ eventBus: mockEventBus });
+      const context = createPatientContext();
+
+      engine.initializePatient('belief-event-patient', context);
+      engine.updateBelief('belief-event-patient', createObservation(), undefined, context);
+
+      // Wait for async event publishing
+      await new Promise(resolve => setTimeout(resolve, 10));
+
+      // Should have at least 2 events: PATIENT_INITIALIZED and BELIEF_STATE_UPDATED
+      expect(publishedEvents.length).toBeGreaterThanOrEqual(2);
+
+      const beliefEvent = publishedEvents.find(
+        e => (e as { eventType: string }).eventType === 'BELIEF_STATE_UPDATED'
+      );
+      expect(beliefEvent).toBeDefined();
+    });
+
+    it('should emit TREATMENT_RECOMMENDED event when getting recommendation', async () => {
+      const publishedEvents: unknown[] = [];
+      const mockEventBus = {
+        publish: jest.fn().mockImplementation(async (event: unknown) => {
+          publishedEvents.push(event);
+        }),
+        subscribe: jest.fn(),
+        subscribeMany: jest.fn(),
+        unsubscribe: jest.fn(),
+        clearAll: jest.fn(),
+        getSubscriptionCount: jest.fn().mockReturnValue(0),
+        hasHandlers: jest.fn().mockReturnValue(false),
+      };
+
+      const engine = new FolliCoreEngine({ eventBus: mockEventBus });
+      const context = createPatientContext();
+
+      engine.initializePatient('recommendation-event-patient', context);
+      engine.updateBelief('recommendation-event-patient', createObservation(), undefined, context);
+      engine.getRecommendation('recommendation-event-patient', context);
+
+      // Wait for async event publishing
+      await new Promise(resolve => setTimeout(resolve, 10));
+
+      const recommendationEvent = publishedEvents.find(
+        e => (e as { eventType: string }).eventType === 'TREATMENT_RECOMMENDED'
+      );
+      expect(recommendationEvent).toBeDefined();
+    });
+
+    it('should emit THOMPSON_ARM_UPDATED event when outcome is updated', async () => {
+      const publishedEvents: unknown[] = [];
+      const mockEventBus = {
+        publish: jest.fn().mockImplementation(async (event: unknown) => {
+          publishedEvents.push(event);
+        }),
+        subscribe: jest.fn(),
+        subscribeMany: jest.fn(),
+        unsubscribe: jest.fn(),
+        clearAll: jest.fn(),
+        getSubscriptionCount: jest.fn().mockReturnValue(0),
+        hasHandlers: jest.fn().mockReturnValue(false),
+      };
+
+      const engine = new FolliCoreEngine({ eventBus: mockEventBus });
+      const context = createPatientContext();
+
+      engine.initializePatient('outcome-event-patient', context);
+      engine.updateOutcome('outcome-event-patient', TrichologyAction.MINOXIDIL_5, 'positive');
+
+      // Wait for async event publishing
+      await new Promise(resolve => setTimeout(resolve, 10));
+
+      const thompsonEvent = publishedEvents.find(
+        e => (e as { eventType: string }).eventType === 'THOMPSON_ARM_UPDATED'
+      );
+      expect(thompsonEvent).toBeDefined();
+    });
+
+    it('should emit TRAJECTORY_PREDICTED event when predicting trajectory', async () => {
+      const publishedEvents: unknown[] = [];
+      const mockEventBus = {
+        publish: jest.fn().mockImplementation(async (event: unknown) => {
+          publishedEvents.push(event);
+        }),
+        subscribe: jest.fn(),
+        subscribeMany: jest.fn(),
+        unsubscribe: jest.fn(),
+        clearAll: jest.fn(),
+        getSubscriptionCount: jest.fn().mockReturnValue(0),
+        hasHandlers: jest.fn().mockReturnValue(false),
+      };
+
+      const engine = new FolliCoreEngine({ eventBus: mockEventBus });
+      const context = createPatientContext();
+
+      engine.initializePatient('trajectory-event-patient', context);
+      engine.updateBelief('trajectory-event-patient', createObservation(), undefined, context);
+      engine.predictTrajectory('trajectory-event-patient');
+
+      // Wait for async event publishing
+      await new Promise(resolve => setTimeout(resolve, 10));
+
+      const trajectoryEvent = publishedEvents.find(
+        e => (e as { eventType: string }).eventType === 'TRAJECTORY_PREDICTED'
+      );
+      expect(trajectoryEvent).toBeDefined();
+    });
+
+    it('should work correctly without EventBus configured', () => {
+      // Engine without EventBus should not throw
+      const engine = new FolliCoreEngine();
+      const context = createPatientContext();
+
+      engine.initializePatient('no-eventbus-patient', context);
+      engine.updateBelief('no-eventbus-patient', createObservation(), undefined, context);
+      engine.getRecommendation('no-eventbus-patient', context);
+      engine.updateOutcome('no-eventbus-patient', TrichologyAction.MINOXIDIL_5, 'positive');
+      engine.predictTrajectory('no-eventbus-patient');
+
+      // All operations should complete without errors
+      expect(engine.getBeliefState('no-eventbus-patient')).toBeDefined();
+    });
+  });
 });

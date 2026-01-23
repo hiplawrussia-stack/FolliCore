@@ -14,6 +14,12 @@
  * @packageDocumentation
  */
 
+// Export errors module
+export * from './errors';
+
+// Export events module (Event-Driven Architecture)
+export * from './events';
+
 // Export trichology domain
 export * from './trichology';
 

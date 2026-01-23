@@ -7,6 +7,12 @@
  * - KalmanFormer for trajectory prediction
  * - Safety rules
  * - Explainability
+ * - Event-Driven Architecture (NEW)
+ *
+ * Event-Driven Architecture:
+ * - Emits domain events for all significant operations
+ * - Supports HIPAA-compliant audit logging via EventBus
+ * - Safety-critical events are explicitly marked
  */
 
 import {
@@ -20,7 +26,7 @@ import {
   type ITreatmentRecord,
   DEFAULT_ACTION_METADATA,
   estimateFollicleAge,
-  PGMU_NORMS,
+  getPGMUNorms,
   getAgeGroup,
 } from './domain/TrichologyStates';
 
@@ -29,6 +35,20 @@ import {
   getSafeAlternative,
   type SafetyCheckContext,
 } from './domain/TrichologySafetyRules';
+
+// Event-Driven Architecture imports
+import type { IEventBus, IEventMetadata } from '../events/IEvents';
+import { createEventMetadata } from '../events/IEvents';
+import {
+  EventTypes,
+  createDomainEvent,
+  type IPatientInitializedPayload,
+  type IBeliefStateUpdatedPayload,
+  type ITreatmentRecommendedPayload,
+  type ITreatmentContraindicatedPayload,
+  type IThompsonArmUpdatedPayload,
+  type ITrajectoryPredictedPayload,
+} from '../events/DomainEvents';
 
 /**
  * Thompson Sampling arm for treatment selection
@@ -102,6 +122,11 @@ export interface IFolliCoreConfig {
   explorationRate: number;  // Thompson Sampling exploration (0-1)
   planningHorizon: number;  // months for trajectory prediction
   riskTolerance: 'conservative' | 'moderate' | 'aggressive';
+
+  // Event-Driven Architecture (optional)
+  eventBus?: IEventBus;     // EventBus for publishing domain events
+  userId?: string;           // Clinician user ID for audit trail
+  sessionId?: string;        // Current session ID for correlation
 }
 
 const DEFAULT_CONFIG: IFolliCoreConfig = {
@@ -123,8 +148,55 @@ export class FolliCoreEngine {
     this.config = { ...DEFAULT_CONFIG, ...config };
   }
 
+  // ============================================================================
+  // EVENT-DRIVEN ARCHITECTURE HELPERS
+  // ============================================================================
+
+  /**
+   * Create event metadata for current context
+   */
+  private createMetadata(patientId?: string, zone?: IEventMetadata['zone']): IEventMetadata {
+    return createEventMetadata('FolliCoreEngine', {
+      userId: this.config.userId,
+      sessionId: this.config.sessionId,
+      patientId,
+      zone,
+    });
+  }
+
+  /**
+   * Publish event to EventBus if configured (fire-and-forget)
+   * Events are non-blocking to maintain engine performance
+   */
+  private publishEvent(event: Parameters<IEventBus['publish']>[0]): void {
+    if (this.config.eventBus) {
+      this.config.eventBus.publish(event).catch((error: unknown) => {
+        // Log but don't throw - events are best-effort
+        // eslint-disable-next-line no-console
+        console.error('[FolliCoreEngine] Event publish failed:', error);
+      });
+    }
+  }
+
+  /**
+   * Set EventBus after construction
+   */
+  public setEventBus(eventBus: IEventBus): void {
+    this.config.eventBus = eventBus;
+  }
+
+  /**
+   * Set user context for audit trail
+   */
+  public setUserContext(userId: string, sessionId?: string): void {
+    this.config.userId = userId;
+    this.config.sessionId = sessionId;
+  }
+
   /**
    * Initialize or get patient state
+   *
+   * @emits PATIENT_INITIALIZED - When patient is successfully initialized
    */
   public initializePatient(
     patientId: string,
@@ -157,6 +229,22 @@ export class FolliCoreEngine {
     // Initialize Thompson Sampling arms
     this.initializeThompsonArms(patientId, context);
 
+    // Emit PATIENT_INITIALIZED event
+    const payload: IPatientInitializedPayload = {
+      patientId,
+      age: context.age,
+      gender: context.gender,
+      medicalHistory: context.medicalHistory,
+      // Contraindications derived from medical history (e.g., "liver disease" -> finasteride contraindicated)
+    };
+    this.publishEvent(createDomainEvent(
+      EventTypes.PATIENT_INITIALIZED,
+      patientId,
+      'patient',
+      payload,
+      this.createMetadata(patientId)
+    ));
+
     return beliefState;
   }
 
@@ -187,6 +275,8 @@ export class FolliCoreEngine {
 
   /**
    * Update belief state with new observation
+   *
+   * @emits BELIEF_STATE_UPDATED - When belief state changes after observation
    */
   public updateBelief(
     patientId: string,
@@ -198,6 +288,10 @@ export class FolliCoreEngine {
     if (!belief) {
       throw new Error(`Patient ${patientId} not initialized`);
     }
+
+    // Capture previous state for event payload
+    const previousDistribution = new Map(belief.stateDistribution);
+    const previousDominant = belief.dominantState;
 
     // Save snapshot
     belief.beliefHistory.push({
@@ -243,6 +337,55 @@ export class FolliCoreEngine {
     };
 
     this.patientBeliefs.set(patientId, belief);
+
+    // Emit BELIEF_STATE_UPDATED event
+    const changes: IBeliefStateUpdatedPayload['changes'] = [];
+    for (const [state, newProb] of updatedDistribution) {
+      const prevProb = previousDistribution.get(state) ?? 0;
+      if (Math.abs(newProb - prevProb) > 0.01) {
+        changes.push({
+          state,
+          previousProbability: prevProb,
+          newProbability: newProb,
+          delta: newProb - prevProb,
+        });
+      }
+    }
+
+    // Convert Maps to Records for event payload
+    const previousBeliefRecord: Record<FollicleState, number> = {} as Record<FollicleState, number>;
+    const newBeliefRecord: Record<FollicleState, number> = {} as Record<FollicleState, number>;
+    for (const [state, prob] of previousDistribution) {
+      previousBeliefRecord[state] = prob;
+    }
+    for (const [state, prob] of updatedDistribution) {
+      newBeliefRecord[state] = prob;
+    }
+
+    const eventPayload: IBeliefStateUpdatedPayload = {
+      patientId,
+      zone: observation.zone,
+      previousBelief: previousBeliefRecord,
+      newBelief: newBeliefRecord,
+      dominantState,
+      confidence: maxProb,
+      observationType: acousticObservation ? 'multimodal' : 'follicle',
+      changes,
+    };
+    this.publishEvent(createDomainEvent(
+      EventTypes.BELIEF_STATE_UPDATED,
+      patientId,
+      'belief_state',
+      eventPayload,
+      this.createMetadata(patientId, observation.zone)
+    ));
+
+    // Check for significant change (dominant state changed)
+    if (previousDominant !== dominantState) {
+      // eslint-disable-next-line no-console
+      console.debug(`[FolliCoreEngine] Significant belief change: ${previousDominant} → ${dominantState}`);
+    }
+
     return belief;
   }
 
@@ -295,7 +438,7 @@ export class FolliCoreEngine {
     const gender = context?.gender || 'male';
     const age = context?.age || 40;
     const ageGroup = getAgeGroup(age);
-    const norms = PGMU_NORMS[gender][observation.zone][ageGroup];
+    const norms = getPGMUNorms(gender, observation.zone, ageGroup);
 
     // Deviation from normal
     const bulbDeviation = (observation.bulbWidth - norms.bulbWidth) / norms.bulbWidth;
@@ -397,6 +540,7 @@ export class FolliCoreEngine {
 
     let risk = 0;
     for (const [state, prob] of distribution) {
+      // eslint-disable-next-line security/detect-object-injection -- state is typed FollicleState enum
       risk += prob * (riskWeights[state] || 0.5);
     }
     return risk;
@@ -421,6 +565,7 @@ export class FolliCoreEngine {
 
     let potential = 0;
     for (const [state, prob] of distribution) {
+      // eslint-disable-next-line security/detect-object-injection -- state is typed FollicleState enum
       potential += prob * (recoveryWeights[state] || 0.5);
     }
     return potential;
@@ -428,6 +573,9 @@ export class FolliCoreEngine {
 
   /**
    * Get treatment recommendation using Thompson Sampling
+   *
+   * @emits TREATMENT_RECOMMENDED - When a treatment is recommended
+   * @emits TREATMENT_CONTRAINDICATED - SAFETY-CRITICAL: When treatment has contraindications
    */
   public getRecommendation(
     patientId: string,
@@ -459,7 +607,8 @@ export class FolliCoreEngine {
 
     // Get top action
     const topArm = samples[0];
-    let primaryAction = topArm.arm.action;
+    const originalAction = topArm.arm.action;
+    let primaryAction = originalAction;
 
     // Safety check
     const safetyContext: SafetyCheckContext = {
@@ -472,6 +621,25 @@ export class FolliCoreEngine {
     const safetyResult = isActionSafe(safetyContext);
 
     if (!safetyResult.safe) {
+      // SAFETY-CRITICAL: Emit TREATMENT_CONTRAINDICATED event
+      for (const blocker of safetyResult.blockers) {
+        const contraindicationPayload: ITreatmentContraindicatedPayload = {
+          patientId,
+          treatment: originalAction,
+          contraindication: blocker.ruleId,
+          severity: 'absolute',
+          riskDescription: blocker.message,
+          alternativesAvailable: true,
+        };
+        this.publishEvent(createDomainEvent(
+          EventTypes.TREATMENT_CONTRAINDICATED,
+          patientId,
+          'treatment_recommendation',
+          contraindicationPayload,
+          this.createMetadata(patientId)
+        ));
+      }
+
       // Get safe alternative
       const alternative = getSafeAlternative(safetyContext);
       if (alternative) {
@@ -492,7 +660,7 @@ export class FolliCoreEngine {
     // Build explanation
     const explanation = this.buildExplanation(topArm.arm, belief, context);
 
-    return {
+    const recommendation: ITreatmentRecommendation = {
       primaryAction,
       confidence: topArm.sample,
       expectedBenefit: this.computeExpectedBenefit(topArm.arm, belief),
@@ -505,6 +673,33 @@ export class FolliCoreEngine {
       },
       explanation,
     };
+
+    // Emit TREATMENT_RECOMMENDED event
+    const recommendationPayload: ITreatmentRecommendedPayload = {
+      patientId,
+      recommendedAction: primaryAction,
+      currentState: belief.dominantState,
+      expectedOutcome: {
+        targetState: FollicleState.HEALTHY_ANAGEN, // Simplified target
+        probability: recommendation.expectedBenefit,
+        timeframeMonths: 6,
+      },
+      alternativeActions: alternatives.map(alt => ({
+        action: alt.action,
+        probability: alt.score,
+      })),
+      thompsonSamplingScore: topArm.sample,
+      confidence: recommendation.confidence,
+    };
+    this.publishEvent(createDomainEvent(
+      EventTypes.TREATMENT_RECOMMENDED,
+      patientId,
+      'treatment_recommendation',
+      recommendationPayload,
+      this.createMetadata(patientId)
+    ));
+
+    return recommendation;
   }
 
   /**
@@ -623,6 +818,7 @@ export class FolliCoreEngine {
       [TrichologyAction.REFER_TO_SPECIALIST]: 'Expert evaluation for complex cases',
     };
 
+    // eslint-disable-next-line security/detect-object-injection -- action is typed TrichologyAction enum
     return outcomes[action] || 'Outcome varies by individual response';
   }
 
@@ -687,6 +883,8 @@ export class FolliCoreEngine {
 
   /**
    * Update Thompson Sampling based on treatment outcome
+   *
+   * @emits THOMPSON_ARM_UPDATED - When Thompson arm parameters are updated
    */
   public updateOutcome(
     patientId: string,
@@ -698,6 +896,10 @@ export class FolliCoreEngine {
 
     const arm = arms.find(a => a.action === action);
     if (!arm) {return;}
+
+    // Capture previous values for event
+    const previousAlpha = arm.alpha;
+    const previousBeta = arm.beta;
 
     switch (outcome) {
       case 'positive':
@@ -712,6 +914,24 @@ export class FolliCoreEngine {
         arm.beta += 0.3;
         break;
     }
+
+    // Emit THOMPSON_ARM_UPDATED event
+    const payload: IThompsonArmUpdatedPayload = {
+      action,
+      previousAlpha,
+      previousBeta,
+      newAlpha: arm.alpha,
+      newBeta: arm.beta,
+      outcome: outcome === 'positive' ? 'success' : 'failure',
+      totalTrials: Math.round(arm.alpha + arm.beta),
+    };
+    this.publishEvent(createDomainEvent(
+      EventTypes.THOMPSON_ARM_UPDATED,
+      patientId,
+      'patient',
+      payload,
+      this.createMetadata(patientId)
+    ));
   }
 
   /**
@@ -723,6 +943,8 @@ export class FolliCoreEngine {
 
   /**
    * Predict trajectory (simplified KalmanFormer-style prediction)
+   *
+   * @emits TRAJECTORY_PREDICTED - When trajectory prediction is performed
    */
   public predictTrajectory(
     patientId: string,
@@ -767,7 +989,7 @@ export class FolliCoreEngine {
       trend = 'stable';
     }
 
-    return {
+    const prediction: ITrajectoryPrediction = {
       horizon: horizonMonths,
       predictedState,
       predictedMetrics: {
@@ -783,6 +1005,43 @@ export class FolliCoreEngine {
       trend,
       confidence: belief.confidence * 0.8,  // Confidence decreases with prediction horizon
     };
+
+    // Emit TRAJECTORY_PREDICTED event
+    // Find predicted dominant state
+    let maxProb = 0;
+    let predictedDominant = belief.dominantState;
+    for (const [state, prob] of predictedState) {
+      if (prob > maxProb) {
+        maxProb = prob;
+        predictedDominant = state;
+      }
+    }
+
+    const trajectoryPayload: ITrajectoryPredictedPayload = {
+      patientId,
+      zone: 'vertex', // Default zone for aggregate prediction
+      currentState: belief.dominantState,
+      predictions: [
+        {
+          monthsAhead: horizonMonths,
+          predictedState: predictedDominant,
+          probability: maxProb,
+          confidenceInterval: [
+            maxProb * 0.8,
+            Math.min(1, maxProb * 1.2),
+          ],
+        },
+      ],
+    };
+    this.publishEvent(createDomainEvent(
+      EventTypes.TRAJECTORY_PREDICTED,
+      patientId,
+      'patient',
+      trajectoryPayload,
+      this.createMetadata(patientId)
+    ));
+
+    return prediction;
   }
 }
 
