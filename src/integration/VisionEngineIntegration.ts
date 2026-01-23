@@ -268,6 +268,7 @@ export class VisionEngineIntegration {
         totalConfidence += result.analysis.overallConfidence;
       } catch (error) {
         // Continue with remaining images
+        // eslint-disable-next-line no-console -- Error logging for debugging
         console.warn(`Failed to process image for zone ${image.zone}:`, error);
       }
     }

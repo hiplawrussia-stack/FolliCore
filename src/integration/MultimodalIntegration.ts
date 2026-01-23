@@ -133,8 +133,8 @@ export interface IMultimodalPipelineResult {
   visionAnalysis: ITrichoscopyAnalysis;
   /** Acoustic analysis result */
   acousticAnalysis: IAcousticAnalysisResult;
-  /** Fused observation */
-  fusedObservation: IFollicleObservation;
+  /** Fused observation (null if vision data unavailable) */
+  fusedObservation: IFollicleObservation | null;
   /** Acoustic observation */
   acousticObservation: IAcousticObservation;
   /** State inference from vision */
@@ -408,28 +408,34 @@ export class MultimodalIntegration {
       if (result.modalityAgreement?.discrepancies.length) {
         const significant = result.modalityAgreement.discrepancies
           .filter(d => d.severity === 'significant');
-        if (significant.length > 0) {
-          keyFindings.push(`${input.zone}: ${significant[0].explanation}`);
+        const firstSignificant = significant[0];
+        if (firstSignificant) {
+          keyFindings.push(`${input.zone}: ${firstSignificant.explanation}`);
         }
       }
     }
 
     // Get final belief and recommendation
     const finalBelief = this.engine.getBeliefState(patientId);
+    if (!finalBelief) {
+      throw new Error(`Belief state not found for patient ${patientId} after scalp mapping`);
+    }
     const recommendation = this.engine.getRecommendation(patientId, context);
     const trajectory = this.engine.predictTrajectory(patientId);
 
     // Build summary
     healthScores.sort((a, b) => a.score - b.score);
-    const worstZone = healthScores[0]?.zone || 'parietal';
-    const bestZone = healthScores[healthScores.length - 1]?.zone || 'occipital';
-    const averageHealthScore = healthScores.reduce((sum, h) => sum + h.score, 0) / healthScores.length;
+    const worstZone = healthScores[0]?.zone ?? 'parietal';
+    const bestZone = healthScores[healthScores.length - 1]?.zone ?? 'occipital';
+    const avgScore = healthScores.length > 0
+      ? healthScores.reduce((sum, h) => sum + h.score, 0) / healthScores.length
+      : 0;
 
     const summary: IScalpSummary = {
       zonesAnalyzed: inputs.map(i => i.zone),
       worstZone,
       bestZone,
-      averageHealthScore,
+      averageHealthScore: avgScore,
       dominantCondition: finalBelief.dominantState,
       overallConfidence: finalBelief.confidence,
       keyFindings,
@@ -524,6 +530,7 @@ export class MultimodalIntegration {
       occipital: 'occipital',
       frontal: 'frontal',
     };
+    // eslint-disable-next-line security/detect-object-injection -- zone is typed ScalpZone enum
     return mapping[zone] || 'parietal';
   }
 

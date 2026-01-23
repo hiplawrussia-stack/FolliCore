@@ -142,7 +142,13 @@ export class FolliCoreEngine {
   private config: IFolliCoreConfig;
   private patientBeliefs = new Map<string, ITrichologyBeliefState>();
   private thompsonArms = new Map<string, IThompsonArm[]>();
-  private treatmentHistory = new Map<string, ITreatmentRecord[]>();
+  // TODO: Implement treatment history tracking for outcome analysis
+  // Reserved for future implementation - tracking treatment outcomes per patient
+  private readonly _treatmentHistory = new Map<string, ITreatmentRecord[]>();
+  // Expose for testing and future use
+  public getTreatmentHistory(patientId: string): ITreatmentRecord[] | undefined {
+    return this._treatmentHistory.get(patientId);
+  }
 
   constructor(config: Partial<IFolliCoreConfig> = {}) {
     this.config = { ...DEFAULT_CONFIG, ...config };
@@ -442,7 +448,9 @@ export class FolliCoreEngine {
 
     // Deviation from normal
     const bulbDeviation = (observation.bulbWidth - norms.bulbWidth) / norms.bulbWidth;
-    const _shaftDeviation = (observation.shaftThickness - norms.shaftThickness) / norms.shaftThickness;
+    // Note: shaftDeviation reserved for future miniaturization detection enhancement
+    const shaftDeviation = (observation.shaftThickness - norms.shaftThickness) / norms.shaftThickness;
+    void shaftDeviation; // Reserved for future use in miniaturization detection
     const anagenRatio = observation.anagenTelogenRatio;
     const vellusRatio = observation.vellusTerminalRatio;
 
@@ -605,8 +613,11 @@ export class FolliCoreEngine {
     // Sort by sampled value
     samples.sort((a, b) => b.sample - a.sample);
 
-    // Get top action
+    // Get top action (guaranteed to exist since arms are initialized)
     const topArm = samples[0];
+    if (!topArm) {
+      throw new Error('No treatment arms available for sampling');
+    }
     const originalAction = topArm.arm.action;
     let primaryAction = originalAction;
 
@@ -615,7 +626,7 @@ export class FolliCoreEngine {
       proposedAction: primaryAction,
       patientContext: context,
       currentBeliefState: belief.stateDistribution,
-      recentObservations: belief.beliefHistory.slice(-3).map(h => h.observation).filter(Boolean),
+      recentObservations: belief.beliefHistory.slice(-3).map(h => h.observation).filter((o): o is IFollicleObservation => o !== undefined),
     };
 
     const safetyResult = isActionSafe(safetyContext);
@@ -854,7 +865,7 @@ export class FolliCoreEngine {
     if (context.gender === 'female') {
       whyNotOthers.push('Finasteride excluded: contraindicated for females');
     }
-    if (belief.stateDistribution.get(FollicleState.INFLAMMATION) > 0.2) {
+    if ((belief.stateDistribution.get(FollicleState.INFLAMMATION) ?? 0) > 0.2) {
       whyNotOthers.push('Aggressive stimulation avoided due to inflammation risk');
     }
 

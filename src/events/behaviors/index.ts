@@ -501,7 +501,10 @@ export class RetryBehavior implements IPipelineBehavior {
     }
 
     context.metrics.retryCount = attempt;
-    throw lastError;
+    if (lastError) {
+      throw lastError;
+    }
+    throw new Error('Max retry attempts exceeded with no error captured');
   }
 
   private isRetryable(error: Error): boolean {

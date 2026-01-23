@@ -594,7 +594,17 @@ export class AcousticEngineIntegration {
       },
     };
 
-    return norms[context.gender][pgmuZone][ageGroup];
+    // Default fallback for unexpected combinations
+    const defaultNorm = { bulbWidth: 70.0, shaftThickness: 30.0 };
+
+    // eslint-disable-next-line security/detect-object-injection -- All keys from typed unions/enums
+    const genderNorms = norms[context.gender];
+    if (!genderNorms) { return defaultNorm; }
+
+    const zoneNorms = genderNorms[pgmuZone];
+    if (!zoneNorms) { return defaultNorm; }
+
+    return zoneNorms[ageGroup] ?? defaultNorm;
   }
 
   /**
@@ -608,6 +618,7 @@ export class AcousticEngineIntegration {
       occipital: 'occipital',
       frontal: 'frontal',
     };
+    // eslint-disable-next-line security/detect-object-injection -- zone is typed ScalpZone enum
     return mapping[zone] || 'parietal';
   }
 

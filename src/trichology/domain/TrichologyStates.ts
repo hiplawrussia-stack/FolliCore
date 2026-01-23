@@ -270,9 +270,32 @@ export interface IObservationModel {
 }
 
 /**
+ * Age group type for PGMU norms
+ */
+export type AgeGroup = '21-35' | '36-59' | '61-74' | '75-86';
+
+/**
+ * PGMU zone type (zones with established norms)
+ */
+export type PGMUZone = 'parietal' | 'temporal';
+
+/**
+ * Morphometric norms structure
+ */
+export interface IMorphometricNorm {
+  bulbWidth: number;
+  shaftThickness: number;
+}
+
+/**
+ * PGMU norms type structure
+ */
+export type PGMUNormsType = Record<'male' | 'female', Record<PGMUZone, Record<AgeGroup, IMorphometricNorm>>>;
+
+/**
  * PGMU-based observation norms by age group
  */
-export const PGMU_NORMS = {
+export const PGMU_NORMS: PGMUNormsType = {
   male: {
     parietal: {
       '21-35': { bulbWidth: 74.6, shaftThickness: 33.8 },
@@ -304,9 +327,38 @@ export const PGMU_NORMS = {
 };
 
 /**
+ * Extended zone type that includes 'vertex' (from ScalpZone)
+ */
+export type ExtendedZone = IFollicleObservation['zone'] | 'vertex';
+
+/**
+ * Map observation zone to PGMU zone (fallback for zones without specific norms)
+ */
+export function toPGMUZone(zone: ExtendedZone): PGMUZone {
+  if (zone === 'parietal' || zone === 'temporal') {
+    return zone;
+  }
+  // Fallback: frontal → temporal, occipital/vertex → parietal
+  return zone === 'frontal' ? 'temporal' : 'parietal';
+}
+
+/**
+ * Get PGMU norms for specific parameters
+ */
+export function getPGMUNorms(
+  gender: 'male' | 'female',
+  zone: ExtendedZone,
+  ageGroup: AgeGroup
+): IMorphometricNorm {
+  const pgmuZone = toPGMUZone(zone);
+  // eslint-disable-next-line security/detect-object-injection -- All keys are typed literal unions, not user input
+  return PGMU_NORMS[gender][pgmuZone][ageGroup];
+}
+
+/**
  * Get age group key from age
  */
-export function getAgeGroup(age: number): '21-35' | '36-59' | '61-74' | '75-86' {
+export function getAgeGroup(age: number): AgeGroup {
   if (age <= 35) {return '21-35';}
   if (age <= 59) {return '36-59';}
   if (age <= 74) {return '61-74';}
@@ -321,10 +373,12 @@ export function estimateFollicleAge(
   observation: IFollicleObservation,
   gender: 'male' | 'female'
 ): number {
-  const norms = PGMU_NORMS[gender][observation.zone];
+  const pgmuZone = toPGMUZone(observation.zone);
+  // eslint-disable-next-line security/detect-object-injection -- Typed literal union keys
+  const zoneNorms = PGMU_NORMS[gender][pgmuZone];
 
-  // Linear interpolation between age groups
-  const ageGroups = ['21-35', '36-59', '61-74', '75-86'] as const;
+  // Age groups with their midpoint values
+  const ageGroups: AgeGroup[] = ['21-35', '36-59', '61-74', '75-86'];
   const ageValues = [28, 47, 67, 80];  // Midpoints
 
   // Find closest match by bulb width
@@ -332,7 +386,10 @@ export function estimateFollicleAge(
   let minDiff = Infinity;
 
   for (let i = 0; i < ageGroups.length; i++) {
-    const norm = norms[ageGroups[i]];
+    // eslint-disable-next-line security/detect-object-injection -- i is loop-bounded, ageGroups contains typed literals
+    const ageGroup = ageGroups[i];
+    if (!ageGroup) { continue; }
+    const norm = zoneNorms[ageGroup];
     const diff = Math.abs(observation.bulbWidth - norm.bulbWidth);
     if (diff < minDiff) {
       minDiff = diff;
@@ -340,18 +397,33 @@ export function estimateFollicleAge(
     }
   }
 
-  // Interpolate
-  if (bestMatch === 0) {
-    return ageValues[0] - (norms[ageGroups[0]].bulbWidth - observation.bulbWidth) * 2;
-  }
-  if (bestMatch === ageGroups.length - 1) {
-    return ageValues[bestMatch] + (norms[ageGroups[bestMatch]].bulbWidth - observation.bulbWidth) * 2;
+  // Interpolate - All indices are validated: bestMatch is 0 to ageGroups.length-1
+  const firstAgeGroup = ageGroups[0];
+  const firstAgeValue = ageValues[0];
+  if (bestMatch === 0 && firstAgeGroup && firstAgeValue !== undefined) {
+    const firstNorm = zoneNorms[firstAgeGroup];
+    return firstAgeValue - (firstNorm.bulbWidth - observation.bulbWidth) * 2;
   }
 
-  const lowerNorm = norms[ageGroups[bestMatch]];
-  const upperNorm = norms[ageGroups[bestMatch + 1]];
+  const bestMatchAgeGroup = ageGroups[bestMatch];
+  const bestMatchAgeValue = ageValues[bestMatch];
+  if (bestMatch === ageGroups.length - 1 && bestMatchAgeGroup && bestMatchAgeValue !== undefined) {
+    const lastNorm = zoneNorms[bestMatchAgeGroup];
+    return bestMatchAgeValue + (lastNorm.bulbWidth - observation.bulbWidth) * 2;
+  }
+
+  const nextAgeGroup = ageGroups[bestMatch + 1];
+  const nextAgeValue = ageValues[bestMatch + 1];
+  if (!bestMatchAgeGroup || !nextAgeGroup || bestMatchAgeValue === undefined || nextAgeValue === undefined) {
+    // Fallback to middle-age estimate if interpolation data is incomplete
+    // Using parietal zone default (most common measurement zone)
+    return 35;
+  }
+
+  const lowerNorm = zoneNorms[bestMatchAgeGroup];
+  const upperNorm = zoneNorms[nextAgeGroup];
   const ratio = (lowerNorm.bulbWidth - observation.bulbWidth) /
                 (lowerNorm.bulbWidth - upperNorm.bulbWidth);
 
-  return ageValues[bestMatch] + ratio * (ageValues[bestMatch + 1] - ageValues[bestMatch]);
+  return bestMatchAgeValue + ratio * (nextAgeValue - bestMatchAgeValue);
 }
