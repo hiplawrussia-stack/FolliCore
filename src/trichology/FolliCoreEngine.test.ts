@@ -1002,8 +1002,9 @@ describe('FolliCoreEngine', () => {
     it('should emit PATIENT_INITIALIZED event when patient is initialized', async () => {
       const publishedEvents: unknown[] = [];
       const mockEventBus = {
-        publish: jest.fn().mockImplementation(async (event: unknown) => {
+        publish: jest.fn().mockImplementation((event: unknown) => {
           publishedEvents.push(event);
+          return Promise.resolve();
         }),
         subscribe: jest.fn(),
         subscribeMany: jest.fn(),
@@ -1029,8 +1030,9 @@ describe('FolliCoreEngine', () => {
     it('should emit BELIEF_STATE_UPDATED event when belief is updated', async () => {
       const publishedEvents: unknown[] = [];
       const mockEventBus = {
-        publish: jest.fn().mockImplementation(async (event: unknown) => {
+        publish: jest.fn().mockImplementation((event: unknown) => {
           publishedEvents.push(event);
+          return Promise.resolve();
         }),
         subscribe: jest.fn(),
         subscribeMany: jest.fn(),
@@ -1061,8 +1063,9 @@ describe('FolliCoreEngine', () => {
     it('should emit TREATMENT_RECOMMENDED event when getting recommendation', async () => {
       const publishedEvents: unknown[] = [];
       const mockEventBus = {
-        publish: jest.fn().mockImplementation(async (event: unknown) => {
+        publish: jest.fn().mockImplementation((event: unknown) => {
           publishedEvents.push(event);
+          return Promise.resolve();
         }),
         subscribe: jest.fn(),
         subscribeMany: jest.fn(),
@@ -1091,8 +1094,9 @@ describe('FolliCoreEngine', () => {
     it('should emit THOMPSON_ARM_UPDATED event when outcome is updated', async () => {
       const publishedEvents: unknown[] = [];
       const mockEventBus = {
-        publish: jest.fn().mockImplementation(async (event: unknown) => {
+        publish: jest.fn().mockImplementation((event: unknown) => {
           publishedEvents.push(event);
+          return Promise.resolve();
         }),
         subscribe: jest.fn(),
         subscribeMany: jest.fn(),
@@ -1120,8 +1124,9 @@ describe('FolliCoreEngine', () => {
     it('should emit TRAJECTORY_PREDICTED event when predicting trajectory', async () => {
       const publishedEvents: unknown[] = [];
       const mockEventBus = {
-        publish: jest.fn().mockImplementation(async (event: unknown) => {
+        publish: jest.fn().mockImplementation((event: unknown) => {
           publishedEvents.push(event);
+          return Promise.resolve();
         }),
         subscribe: jest.fn(),
         subscribeMany: jest.fn(),

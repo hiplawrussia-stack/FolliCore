@@ -394,6 +394,7 @@ export class FolliCoreEventBus implements IEventBus {
     let index = 0;
     const executeNext = async (): Promise<void> => {
       if (index < this.behaviors.length) {
+        // eslint-disable-next-line security/detect-object-injection -- index is controlled numeric loop variable
         const behavior = this.behaviors[index];
         if (behavior) {
           index++;

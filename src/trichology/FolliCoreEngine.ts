@@ -356,10 +356,10 @@ export class FolliCoreEngine {
     const previousBeliefRecord: Record<FollicleState, number> = {} as Record<FollicleState, number>;
     const newBeliefRecord: Record<FollicleState, number> = {} as Record<FollicleState, number>;
     for (const [state, prob] of previousDistribution) {
-      previousBeliefRecord[state] = prob;
+      previousBeliefRecord[state] = prob; // eslint-disable-line security/detect-object-injection
     }
     for (const [state, prob] of updatedDistribution) {
-      newBeliefRecord[state] = prob;
+      newBeliefRecord[state] = prob; // eslint-disable-line security/detect-object-injection
     }
 
     const eventPayload: IBeliefStateUpdatedPayload = {

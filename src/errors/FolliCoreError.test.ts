@@ -12,11 +12,10 @@
  * @module errors/tests
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+// Jest globals: describe, it, expect, beforeEach are available globally
 import {
   // Base error
   FolliCoreError,
-  type IErrorContext,
   // Error codes
   ErrorCode,
   ErrorCategory,
@@ -46,8 +45,6 @@ import {
   ForbiddenStateTransitionError,
   TreatmentContraindicatedError,
   TreatmentNotApplicableError,
-  TreatmentSelectionError,
-  ThompsonSamplingError,
   NoEligibleActionsError,
   TrajectoryPredictionError,
   InsufficientTrajectoryDataError,
@@ -475,12 +472,12 @@ describe('Result Type Utilities', () => {
 
   describe('isOk', () => {
     it('should return true for successful result', () => {
-      const result: Result<number, FolliCoreError> = ok(42);
+      const result: Result<number> = ok(42);
       expect(isOk(result)).toBe(true);
     });
 
     it('should return false for failed result', () => {
-      const result: Result<number, FolliCoreError> = fail(
+      const result: Result<number> = fail(
         new FolliCoreError(ErrorCode.UNKNOWN_ERROR, 'Test')
       );
       expect(isOk(result)).toBe(false);
@@ -489,39 +486,39 @@ describe('Result Type Utilities', () => {
 
   describe('isFail', () => {
     it('should return true for failed result', () => {
-      const result: Result<number, FolliCoreError> = fail(
+      const result: Result<number> = fail(
         new FolliCoreError(ErrorCode.UNKNOWN_ERROR, 'Test')
       );
       expect(isFail(result)).toBe(true);
     });
 
     it('should return false for successful result', () => {
-      const result: Result<number, FolliCoreError> = ok(42);
+      const result: Result<number> = ok(42);
       expect(isFail(result)).toBe(false);
     });
   });
 
   describe('unwrap', () => {
     it('should return value for successful result', () => {
-      const result: Result<number, FolliCoreError> = ok(42);
+      const result: Result<number> = ok(42);
       expect(unwrap(result)).toBe(42);
     });
 
     it('should throw for failed result', () => {
       const error = new FolliCoreError(ErrorCode.DOMAIN_BELIEF_UPDATE_FAILED, 'Test error');
-      const result: Result<number, FolliCoreError> = fail(error);
+      const result: Result<number> = fail(error);
       expect(() => unwrap(result)).toThrow(error);
     });
   });
 
   describe('unwrapOr', () => {
     it('should return value for successful result', () => {
-      const result: Result<number, FolliCoreError> = ok(42);
+      const result: Result<number> = ok(42);
       expect(unwrapOr(result, 0)).toBe(42);
     });
 
     it('should return default for failed result', () => {
-      const result: Result<number, FolliCoreError> = fail(
+      const result: Result<number> = fail(
         new FolliCoreError(ErrorCode.UNKNOWN_ERROR, 'Test')
       );
       expect(unwrapOr(result, 100)).toBe(100);
@@ -594,7 +591,7 @@ describe('ErrorHandler', () => {
 
     it('should call safety escalation handler for critical errors', async () => {
       const escalationHandler = {
-        escalate: vi.fn(),
+        escalate: jest.fn(),
       };
 
       const handler = ErrorHandler.getInstance();
@@ -973,92 +970,92 @@ describe('Validation Helpers', () => {
   describe('validateRequiredFields', () => {
     it('should pass for object with all required fields', () => {
       const obj = { name: 'test', age: 25, gender: 'male' };
-      expect(() => validateRequiredFields(obj, ['name', 'age'])).not.toThrow();
+      expect(() => { validateRequiredFields(obj, ['name', 'age']); }).not.toThrow();
     });
 
     it('should throw RequiredFieldError for missing field', () => {
       const obj = { name: 'test' };
       expect(() =>
-        validateRequiredFields(obj as Record<string, unknown>, ['name', 'age'])
+        { validateRequiredFields(obj as Record<string, unknown>, ['name', 'age']); }
       ).toThrow(RequiredFieldError);
     });
 
     it('should throw for null values', () => {
       const obj = { name: 'test', age: null };
       expect(() =>
-        validateRequiredFields(obj as Record<string, unknown>, ['name', 'age'])
+        { validateRequiredFields(obj as Record<string, unknown>, ['name', 'age']); }
       ).toThrow(RequiredFieldError);
     });
   });
 
   describe('validateRange', () => {
     it('should pass for value within range', () => {
-      expect(() => validateRange('age', 25, 0, 120)).not.toThrow();
+      expect(() => { validateRange('age', 25, 0, 120); }).not.toThrow();
     });
 
     it('should throw OutOfRangeError for value below min', () => {
-      expect(() => validateRange('age', -5, 0, 120)).toThrow(OutOfRangeError);
+      expect(() => { validateRange('age', -5, 0, 120); }).toThrow(OutOfRangeError);
     });
 
     it('should throw OutOfRangeError for value above max', () => {
-      expect(() => validateRange('age', 150, 0, 120)).toThrow(OutOfRangeError);
+      expect(() => { validateRange('age', 150, 0, 120); }).toThrow(OutOfRangeError);
     });
 
     it('should handle min-only validation', () => {
-      expect(() => validateRange('count', 5, 0)).not.toThrow();
-      expect(() => validateRange('count', -1, 0)).toThrow(OutOfRangeError);
+      expect(() => { validateRange('count', 5, 0); }).not.toThrow();
+      expect(() => { validateRange('count', -1, 0); }).toThrow(OutOfRangeError);
     });
 
     it('should handle max-only validation', () => {
-      expect(() => validateRange('count', 50, undefined, 100)).not.toThrow();
-      expect(() => validateRange('count', 150, undefined, 100)).toThrow(OutOfRangeError);
+      expect(() => { validateRange('count', 50, undefined, 100); }).not.toThrow();
+      expect(() => { validateRange('count', 150, undefined, 100); }).toThrow(OutOfRangeError);
     });
   });
 
   describe('validateZone', () => {
     it('should pass for valid zones', () => {
-      expect(() => validateZone('temporal')).not.toThrow();
-      expect(() => validateZone('parietal')).not.toThrow();
-      expect(() => validateZone('occipital')).not.toThrow();
-      expect(() => validateZone('frontal')).not.toThrow();
-      expect(() => validateZone('vertex')).not.toThrow();
+      expect(() => { validateZone('temporal'); }).not.toThrow();
+      expect(() => { validateZone('parietal'); }).not.toThrow();
+      expect(() => { validateZone('occipital'); }).not.toThrow();
+      expect(() => { validateZone('frontal'); }).not.toThrow();
+      expect(() => { validateZone('vertex'); }).not.toThrow();
     });
 
     it('should throw InvalidZoneError for invalid zone', () => {
-      expect(() => validateZone('back')).toThrow(InvalidZoneError);
-      expect(() => validateZone('crown')).toThrow(InvalidZoneError);
+      expect(() => { validateZone('back'); }).toThrow(InvalidZoneError);
+      expect(() => { validateZone('crown'); }).toThrow(InvalidZoneError);
     });
   });
 
   describe('validateGender', () => {
     it('should pass for valid genders', () => {
-      expect(() => validateGender('male')).not.toThrow();
-      expect(() => validateGender('female')).not.toThrow();
+      expect(() => { validateGender('male'); }).not.toThrow();
+      expect(() => { validateGender('female'); }).not.toThrow();
     });
 
     it('should throw InvalidGenderError for invalid gender', () => {
-      expect(() => validateGender('other')).toThrow(InvalidGenderError);
-      expect(() => validateGender('unknown')).toThrow(InvalidGenderError);
+      expect(() => { validateGender('other'); }).toThrow(InvalidGenderError);
+      expect(() => { validateGender('unknown'); }).toThrow(InvalidGenderError);
     });
   });
 
   describe('validateAge', () => {
     it('should pass for valid ages', () => {
-      expect(() => validateAge(25, 18, 100)).not.toThrow();
-      expect(() => validateAge(18, 18, 100)).not.toThrow();
-      expect(() => validateAge(100, 18, 100)).not.toThrow();
+      expect(() => { validateAge(25, 18, 100); }).not.toThrow();
+      expect(() => { validateAge(18, 18, 100); }).not.toThrow();
+      expect(() => { validateAge(100, 18, 100); }).not.toThrow();
     });
 
     it('should throw InvalidAgeError for age below minimum', () => {
-      expect(() => validateAge(15, 18, 100)).toThrow(InvalidAgeError);
+      expect(() => { validateAge(15, 18, 100); }).toThrow(InvalidAgeError);
     });
 
     it('should throw InvalidAgeError for age above maximum', () => {
-      expect(() => validateAge(110, 18, 100)).toThrow(InvalidAgeError);
+      expect(() => { validateAge(110, 18, 100); }).toThrow(InvalidAgeError);
     });
 
     it('should throw InvalidAgeError for non-integer age', () => {
-      expect(() => validateAge(25.5, 18, 100)).toThrow(InvalidAgeError);
+      expect(() => { validateAge(25.5, 18, 100); }).toThrow(InvalidAgeError);
     });
   });
 });

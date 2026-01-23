@@ -7,8 +7,13 @@
  * - Integrity verification via checksums
  * - Snapshot support for performance
  *
+ * Note: This is an in-memory implementation. Async methods are used
+ * to maintain interface compatibility with future database backends.
+ *
  * @module events
  */
+
+/* eslint-disable @typescript-eslint/require-await -- In-memory impl maintains async API for future DB backends */
 
 import { createHash, randomUUID } from 'crypto';
 import type { IDomainEvent } from './IEvents';
